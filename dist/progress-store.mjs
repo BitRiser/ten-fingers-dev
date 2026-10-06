@@ -1,5 +1,6 @@
 import {loadData,savePractice} from './core.mjs';
 import {ensureLearning,progressFor,learningFor,mergeSkills,parseBackup,backupData} from './learning.mjs';
+import {mergeOnboarding} from './onboarding.mjs';
 export const STORAGE_KEY='ten-fingers-v2';
 const clone=value=>structuredClone(value),same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 function mergeItems(base=[],local=[],remote=[]){
@@ -22,7 +23,7 @@ export function mergePreferences(base,local,remote){
   for(const field of ['goal','minutes','configured'])if(!same(previous?.[field],model[field]))target[field]=model[field];
   if(model.plan){if(target.plan?.day===model.plan.day)target.plan.done={...model.plan.done,...target.plan.done};else if(!same(previous?.plan,model.plan))target.plan=clone(model.plan);}
  }
- result.guideSeen=local.guideSeen||result.guideSeen;return result;
+ result.guideSeen=local.guideSeen||result.guideSeen;result.onboarding=mergeOnboarding(local.onboarding,result.onboarding);return result;
 }
 export function applyCompletion(data,result,context){
  const model=learningFor(data,context.lang,context.layout),existing=model.activities.find(r=>r.sessionId===result.sessionId);
