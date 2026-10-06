@@ -1,8 +1,9 @@
+import {codeTokenType} from './code-content.mjs';
 // A page keeps the same nodes and geometry until its final word is finished.
 // Typing changes colour and the caret, never the width of the reference text.
 export class WordView{
- constructor(root,session,{rows=3,onLayout=()=>{}}={}){
-  this.root=root;this.session=session;this.rows=rows;this.onLayout=onLayout;this.pages=[];this.page=null;this.nodes=new Map();this.width=root.clientWidth;this.font='';
+ constructor(root,session,{rows=3,syntax=false,onLayout=()=>{}}={}){
+  this.root=root;this.session=session;this.rows=rows;this.syntax=syntax;this.onLayout=onLayout;this.pages=[];this.page=null;this.nodes=new Map();this.width=root.clientWidth;this.font='';
   this.observer=new ResizeObserver(()=>{if(!root.isConnected)return;const width=root.clientWidth;if(width!==this.width){this.width=width;this.invalidate();onLayout();}});
   this.observer.observe(root);document.fonts?.ready.then(()=>{if(root.isConnected){this.invalidate();onLayout();}});
  }
@@ -10,6 +11,7 @@ export class WordView{
  invalidate(){this.pages=[];this.page=null;this.nodes.clear();}
  createWord(index){
   const node=document.createElement('span');node.className='word';node.dataset.word=index;
+  if(this.syntax)node.classList.add('syntax-'+codeTokenType(this.session.words[index]));
   for(const letter of this.session.words[index]){const char=document.createElement('span');char.className='char';char.textContent=letter;node.append(char);}
   const extra=document.createElement('span');extra.className='word-extras';extra.setAttribute('aria-hidden','true');node.append(extra);
   return {node,chars:[...node.querySelectorAll('.char')],extra,value:null,active:null};
