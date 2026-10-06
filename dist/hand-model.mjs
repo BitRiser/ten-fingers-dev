@@ -1,16 +1,53 @@
+import {keyBox,center} from './mac-geometry.mjs';
 export const HOME_COLUMNS=[0,1,2,3,6,7,8,9];
-export const BASES=[[79,269],[126,290],[173,306],[220,294],[407,294],[454,306],[501,290],[548,269]];
-export const LENGTHS=[[70,53,32],[80,61,40],[87,65,44],[82,63,42],[82,63,42],[87,65,44],[80,61,40],[70,53,32]];
-export const homePoint=i=>[66+HOME_COLUMNS[i]*55,160];
-export function keyPoint(key){if(key.point)return key.point;if(key.row===-1)return[34+key.col*52,44];if(key.row===3)return[312,276];return[[22,42,73][key.row]+key.col*55+24,102+key.row*58]}
-export function handOffset(key){if(!key||key.finger>7)return[0,0];let base=BASES[key.finger],tip=keyPoint(key),dx=tip[0]-base[0],dy=tip[1]-base[1],d=Math.hypot(dx,dy),max=LENGTHS[key.finger].reduce((a,b)=>a+b)*.88,travel=Math.max(0,d-max);return[dx/d*travel,dy/d*travel]}
-// Top-view projection: flexion shortens the visible phalanges, never stretches them.
-export function solveFinger(index,target){
- const base=BASES[index],lengths=LENGTHS[index],sum=lengths.reduce((a,b)=>a+b),dx=target[0]-base[0],dy=target[1]-base[1],distance=Math.hypot(dx,dy),scale=Math.min(.96,sum*.96/Math.max(1,distance));
- const tip=[base[0]+dx*scale,base[1]+dy*scale],bend=Math.min(3,Math.max(0,sum-distance)*.035)*(index<4?-1:1),f1=lengths[0]/sum,f2=(lengths[0]+lengths[1])/sum;
- return[base,[base[0]+(tip[0]-base[0])*f1+bend,base[1]+(tip[1]-base[1])*f1],[base[0]+(tip[0]-base[0])*f2+bend*.4,base[1]+(tip[1]-base[1])*f2],tip];
+export const BASES=[[115,310],[165,329],[215,339],[265,325],[415,325],[465,339],[515,329],[565,310]];
+export const LENGTHS=[[80,57,36],[86,63,41],[92,68,44],[87,64,41],[87,64,41],[92,68,44],[86,63,41],[80,57,36]];
+const ROOT_HEIGHT=30;
+export const homePoint=i=>center(keyBox(1,HOME_COLUMNS[i]));
+export function keyPoint(key){
+ if(key.point)return key.point;
+ const box=keyBox(key.row,key.col);
+ // Pinkies press the inner part of a wide Shift, rather than its distant centre.
+ if(key.row===4)return[key.col===0?box.x+box.width-22:box.x+22,box.y+box.height/2];
+ return center(box);
 }
-export function fingerOutline(points,index){let widths=index===0||index===7?[15,14,12,11]:[19,17,15,13];let sides=[[],[]];for(let i=0;i<points.length;i++){let before=points[Math.max(0,i-1)],after=points[Math.min(points.length-1,i+1)],dx=after[0]-before[0],dy=after[1]-before[1],length=Math.hypot(dx,dy)||1,nx=-dy/length,ny=dx/length;for(let sign of [0,1]){let w=widths[i]*(sign?1:-1);sides[sign].push([points[i][0]+nx*w,points[i][1]+ny*w])}}
- let [left,right]=sides,r=widths.at(-1),p=a=>a.map(n=>n.toFixed(2)).join(' ');return`M${p(left[0])} Q${p(left[1])} ${p([(left[1][0]+left[2][0])/2,(left[1][1]+left[2][1])/2])} Q${p(left[2])} ${p(left[3])} A${r} ${r} 0 0 1 ${p(right[3])} Q${p(right[2])} ${p([(right[1][0]+right[2][0])/2,(right[1][1]+right[2][1])/2])} Q${p(right[1])} ${p(right[0])} Z`;
+export function handOffset(key){
+ if(!key||key.finger>7)return[0,0];
+ const base=BASES[key.finger],tip=keyPoint(key),dx=tip[0]-base[0],dy=tip[1]-base[1],sideways=Math.sign(dx)*Math.max(0,Math.abs(dx)-Math.abs(dy)*Math.tan(.45)),remainingX=dx-sideways,distance=Math.hypot(remainingX,dy),reach=LENGTHS[key.finger].reduce((a,b)=>a+b)*.9;
+ const travel=Math.max(0,distance-reach);return distance?[sideways+remainingX/distance*travel,dy/distance*travel]:[0,0];
 }
-export function crease(points,index,joint){let center=points[joint],before=points[joint-1],after=points[joint+1],dx=after[0]-before[0],dy=after[1]-before[1],length=Math.hypot(dx,dy)||1,width=(index===0||index===7?8:10);return`M${center[0]+dy/length*width} ${center[1]-dx/length*width} Q${center[0]} ${center[1]+3} ${center[0]-dy/length*width} ${center[1]+dx/length*width}`}
+// Fixed-length 3D phalanges. MCP sets pitch; PIP and DIP curl towards the key.
+// Flexion shortens the projection; the skin never stretches sideways.
+export function jointPose(index,target){
+ const base=BASES[index],lengths=LENGTHS[index],dx=target[0]-base[0],dy=target[1]-base[1],yaw=Math.atan2(dy,dx),distance=Math.hypot(dx,dy);
+ const sum=lengths.reduce((a,b)=>a+b),radius=Math.min(sum*.995,Math.hypot(distance,ROOT_HEIGHT));
+ const vector=q=>{const angles=[0,-q,-1.65*q];return[lengths.reduce((v,l,i)=>v+l*Math.cos(angles[i]),0),lengths.reduce((v,l,i)=>v+l*Math.sin(angles[i]),0)];};
+ let low=0,high=1.65;for(let n=0;n<32;n++){const q=(low+high)/2,v=vector(q);if(Math.hypot(...v)>radius)low=q;else high=q;}
+ const flex=(low+high)/2,v=vector(flex),pitch=Math.atan2(-ROOT_HEIGHT,Math.max(1,distance))-Math.atan2(v[1],v[0]);
+ return{yaw,pitch,flex};
+}
+export function posePoints(index,pose){
+ const points=[[...BASES[index],ROOT_HEIGHT]],angles=[pose.pitch,pose.pitch-pose.flex,pose.pitch-1.65*pose.flex];
+ for(let part=0;part<3;part++){const previous=points.at(-1),length=LENGTHS[index][part],projected=length*Math.cos(angles[part]);points.push([previous[0]+Math.cos(pose.yaw)*projected,previous[1]+Math.sin(pose.yaw)*projected,previous[2]+length*Math.sin(angles[part])]);}
+ return points;
+}
+export const solveFinger=(index,target)=>posePoints(index,jointPose(index,target));
+export function fingerOutline(points,index){
+ const widths=index===0||index===7?[16,15,13,11.5]:index===8?[22,18,14]:[20,18,15.5,13];
+ const before=points[0],tip=points.at(-1),dx=tip[0]-before[0],dy=tip[1]-before[1],length=Math.hypot(dx,dy)||1,nx=-dy/length,ny=dx/length,p=a=>a.map(n=>n.toFixed(2)).join(' ');
+ const side=sign=>points.map((point,i)=>[point[0]+nx*widths[i]*sign,point[1]+ny*widths[i]*sign]);
+ const a=side(1),b=side(-1),mid=(x,y)=>[(x[0]+y[0])/2,(x[1]+y[1])/2];
+ const flank=arr=>arr.slice(1,-1).map((point,i)=>`Q${p(point)} ${p(mid(point,arr[i+2]))}`).join(' ')+` L${p(arr.at(-1))}`;
+ const cap=[tip[0]+dx/length*widths.at(-1),tip[1]+dy/length*widths.at(-1)];
+ return`M${p(a[0])} ${flank(a)} Q${p(cap)} ${p(b.at(-1))} ${flank(b.slice().reverse())} Z`;
+}
+export function crease(points,index,joint){
+ const c=points[joint],before=points[joint-1],after=points[joint+1],dx=after[0]-before[0],dy=after[1]-before[1],length=Math.hypot(dx,dy)||1,w=index===0||index===7?9:12,nx=-dy/length,ny=dx/length,p=a=>a.map(n=>n.toFixed(2)).join(' ');
+ return`M${p([c[0]-nx*w,c[1]-ny*w])} Q${p([c[0]+dx/length*3,c[1]+dy/length*3])} ${p([c[0]+nx*w,c[1]+ny*w])}`;
+}
+export const THUMB_LENGTHS=[68,64];
+export function thumbPoints(amount=0){
+ const base=[266,375,10],target=[318+amount*17,288-amount*20],dx=target[0]-base[0],dy=target[1]-base[1],distance=Math.hypot(dx,dy),yaw=Math.atan2(dy,dx),radius=Math.hypot(distance,base[2]),[a,b]=THUMB_LENGTHS;
+ const flex=Math.acos(Math.max(-1,Math.min(1,(radius*radius-a*a-b*b)/(2*a*b)))),pitch=Math.atan2(-base[2],distance)-Math.atan2(-b*Math.sin(flex),a+b*Math.cos(flex));
+ const points=[base];for(let i=0;i<2;i++){const previous=points.at(-1),angle=pitch-i*flex,length=THUMB_LENGTHS[i],projected=length*Math.cos(angle);points.push([previous[0]+Math.cos(yaw)*projected,previous[1]+Math.sin(yaw)*projected,previous[2]+length*Math.sin(angle)]);}return points;
+}

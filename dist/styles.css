@@ -27,3 +27,39 @@ body:not([data-theme]),body[data-theme=dark]{--muted:#9aa7b7}body[data-theme=lig
 
 #caretOverlay{transition:none}
 .typing-input{top:24px;bottom:auto}.typing-input.visible{top:auto}
+
+/* MacBook Air M1 ANSI and continuous joint motion. */
+.stage.unfocused .words{filter:blur(7px);opacity:.35;pointer-events:none;user-select:none}
+.stage .words{transition:none}
+.keyboard-model{display:flex;justify-content:space-between;gap:12px;margin:0 5px 12px;color:var(--muted);font-size:10px;letter-spacing:.4px}
+.mac-keyboard .key-cap rect{fill:#14181e;fill-opacity:1;stroke:#717b89;stroke-opacity:.7;opacity:1;stroke-width:.75}
+.mac-keyboard .key-cap text{fill:#e2e7ee;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;font-size:13px}
+.mac-keyboard .key-main[text-anchor=start]{text-anchor:start}
+.mac-keyboard .key-cap .key-language{text-anchor:end;font-size:11px;fill:#a9b3c1}
+.mac-keyboard .key-cap .key-alt{font-size:8px;fill:#a9b3c1}
+.mac-keyboard .modifier-key text{font-size:12px}
+.mac-keyboard .modifier-key .modifier-title{font-size:6.5px;fill:#a9b3c1}
+.mac-keyboard .command text,.mac-keyboard .option text,.mac-keyboard .control text{font-size:19px}
+.mac-keyboard .left text,.mac-keyboard .right text,.mac-keyboard .up text,.mac-keyboard .down text{font-size:8px}
+.mac-keyboard .function-key text{font-size:10px}
+.mac-keyboard .function-key .function-name{font-size:6.5px;fill:#a9b3c1}
+.function-symbol{fill:none;stroke:#dce3ec;stroke-width:1.1;stroke-linejoin:round;stroke-linecap:round}
+.touch-id circle,.touch-id path{fill:none;stroke:#798392;stroke-width:1}
+.mac-keyboard .home-mark{fill:none;stroke:#a9b3c1;stroke-width:1.4;stroke-linecap:round}
+.mac-keyboard .key-cap.target rect{fill:var(--accent);stroke:var(--accent);opacity:1}
+.mac-keyboard .key-cap.target text{fill:var(--bg)}
+.mac-keyboard .key-cap.shift-target rect{fill:#21364d;stroke:var(--accent);stroke-width:1.5}
+.mac-keyboard .key-cap.pressed rect{fill:var(--success);stroke:var(--success)}
+.mac-keyboard .hands-layer{opacity:.43}
+.mac-keyboard .hand-palm,.mac-keyboard .finger-skin,.mac-keyboard .thumb-skin{fill:var(--hand-fill);stroke:none}
+.mac-keyboard .finger-edge{stroke:var(--text);stroke-opacity:.19;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}
+.mac-keyboard .active-finger .finger-edge{stroke:var(--accent);stroke-opacity:.9;stroke-width:1.6}
+.mac-keyboard .joint-crease{stroke:var(--bg);stroke-opacity:.8;stroke-width:1.3;fill:none;stroke-linecap:round}
+.mac-keyboard .joint-pad{fill:var(--text);fill-opacity:.08;stroke:none}
+.mac-keyboard .fingernail{fill:var(--bg);fill-opacity:.18;stroke:var(--bg);stroke-opacity:.35;stroke-width:.7}
+.mac-keyboard .palm-crease{stroke:var(--bg);stroke-opacity:.4}
+.mac-keyboard .thumb.active-thumb .thumb-skin{stroke:var(--accent);stroke-opacity:.65;stroke-width:1.3}
+.mac-keyboard .finger-hint{margin-top:-16px}
+.mac-keyboard.no-hands .keyboard-svg{margin-bottom:-32%}
+.mac-keyboard.no-hands .finger-hint{margin-top:4px}
+@media(max-width:560px){.keyboard-model{font-size:8px;margin-bottom:8px}.mac-keyboard .finger-hint{margin-top:-5px}}

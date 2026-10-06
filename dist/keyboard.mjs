@@ -1,28 +1,85 @@
 import {LAYOUTS,findKey,FINGER_NAMES,numberRow} from './data.mjs';
-import {homePoint,keyPoint,handOffset,solveFinger,fingerOutline,crease} from './hand-model.mjs';
+import {homePoint,keyPoint,handOffset,jointPose,posePoints,fingerOutline,crease,thumbPoints} from './hand-model.mjs';
+import {keyBox,modifierBoxes} from './mac-geometry.mjs';
 const esc=s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 const controllers=new WeakMap();
-function cap(char,alt,row,col,x,y,width=48,label=null){return`<g class="key-cap" data-row="${row}" data-col="${col}" transform="translate(${x} ${y})"><rect width="${width}" height="48" rx="7"/><text x="${width/2}" y="${alt&&alt!==char.toUpperCase()?20:26}">${esc(label||char.toUpperCase())}</text>${alt&&alt!==char.toUpperCase()?`<text class="key-alt" x="${width/2}" y="36">${esc(alt)}</text>`:''}${row===1&&(col===3||col===6)?'<path class="home-mark" d="M20 39h8"/>':''}</g>`}
+function cap(char,alt,row,col,box,{label=null,legend=null,kind='',home=false}={}){
+ const {x,y,width,height}=box,dual=!!legend&&legend.toUpperCase()!==char.toUpperCase(),main=label??(dual?legend.toUpperCase():char.toUpperCase());
+ return`<g class="key-cap ${kind}" data-row="${row}" data-col="${col}" transform="translate(${x} ${y})"><rect width="${width}" height="${height}" rx="5"/><text class="key-main" x="${dual?12:width/2}" y="${height/2+1}" ${dual?'text-anchor="start"':''}>${esc(main)}</text>${dual?`<text class="key-language" x="${width-9}" y="${height-10}">${esc(char.toUpperCase())}</text>`:''}${alt&&alt!==char.toUpperCase()&&!label&&!dual?`<text class="key-alt" x="${width/2}" y="10">${esc(alt)}</text>`:''}${home?`<path class="home-mark" d="M${width/2-4} ${height-6}h8"/>`:''}</g>`;
+}
+const functionIcons=[
+ '<circle cx="0" cy="0" r="3"/><path d="M0-7v2m0 10v2m-7-7h2m10 0h2m-12-5 2 2m6 6 2 2m-10 0 2-2m6-6 2-2"/>',
+ '<circle cx="0" cy="0" r="4"/><path d="M0-8v2m0 12v2m-8-8h2m12 0h2m-14-6 2 2m8 8 2 2m-12 0 2-2m8-8 2-2"/>',
+ '<rect x="-7" y="-5" width="8" height="7"/><rect x="-1" y="-1" width="8" height="6"/>',
+ '<circle cx="-2" cy="-2" r="5"/><path d="m2 2 5 5"/>',
+ '<rect x="-3" y="-7" width="6" height="10" rx="3"/><path d="M-6 0a6 6 0 0 0 12 0M0 6v2m-3 0h6"/>',
+ '<path d="M4-7a8 8 0 1 0 3 12A7 7 0 0 1 4-7Z"/>',
+ '<path d="M-7-5v10M0-5l-6 5 6 5Zm7 0L1 0l6 5Z"/>',
+ '<path d="m-7-5 6 5-6 5ZM3-5v10m4-10v10"/>',
+ '<path d="M7-5v10M0-5l6 5-6 5Zm-7 0 6-5-6-5Z"/>',
+ '<path d="M-7-3h4l4-4v14l-4-4h-4Zm11 0 5 6m0-6-5 6"/>',
+ '<path d="M-7-3h4l4-4v14l-4-4h-4Zm11 0q4 3 0 6"/>',
+ '<path d="M-7-3h4l4-4v14l-4-4h-4Zm11 0q4 3 0 6m3-9q7 6 0 12"/>'
+];
+function functionRow(){
+ let markup=cap('','',-3,0,{x:5,y:8,width:70,height:28},{label:'esc',kind:'function-key'});
+ for(let i=0;i<12;i++){const x=80+i*50;markup+=`<g class="key-cap function-key" data-row="-3" data-col="${i+1}" transform="translate(${x} 8)"><rect width="45" height="28" rx="5"/><g class="function-symbol" transform="translate(22.5 10)">${functionIcons[i]}</g><text class="function-name" x="22.5" y="23">F${i+1}</text></g>`;}
+ return markup+`<g class="key-cap touch-id" data-row="-3" data-col="13" transform="translate(680 8)"><rect width="70" height="28" rx="5"/><circle cx="35" cy="14" r="9"/></g>`;
+}
+const palm='<path class="hand-palm" d="M94 316Q91 301 111 303Q130 304 142 323Q156 315 176 328Q190 327 209 339Q229 326 250 325Q275 322 283 344Q289 364 276 385Q283 405 280 429L264 507Q194 529 114 506L101 448Q79 371 94 316Z"/><path class="palm-crease" d="M113 373Q180 343 258 370 M129 425Q201 444 259 411 M255 377Q268 405 252 441"/>';
+function fingerMarkup(i){const points=posePoints(i,jointPose(i,homePoint(i)));return`<g class="articulated-finger" data-finger="${i}"><path class="finger-skin" d="${fingerOutline(points,i)}"/><path class="finger-edge" d="${fingerOutline(points,i)}"/><path class="joint-crease mcp" d="${crease(points,i,1)}"/><path class="joint-crease pip" d="${crease(points,i,2)}"/><ellipse class="joint-pad"/><ellipse class="fingernail"/></g>`;}
+function thumbMarkup(){const points=thumbPoints();return`<g class="thumb"><path class="thumb-skin" d="${fingerOutline(points,8)}"/><path class="joint-crease" d="${crease(points,8,1)}"/><ellipse class="fingernail"/></g>`;}
 export function keyboardMarkup(layout){
- const l=LAYOUTS[layout],n=numberRow(layout);let keys=[...n.base].map((c,i)=>cap(c,n.shift[i],-1,i,10+i*52,20,48)).join('');keys+=cap('','',-2,0,690,20,62,'←');
- keys+=l.rows.map((row,r)=>[...row].map((c,i)=>cap(c,l.shift[r][i],r,i,[22,42,73][r]+i*55,78+r*58)).join('')).join('');keys+=cap('','',4,0,8,194,58,'Shift')+cap('','',4,1,638,194,100,'Shift');keys+=cap(' ','',3,0,232,252,320,'пробел');
- let palm='<path class="hand-palm" d="M63 282Q61 266 78 255Q99 253 111 272Q132 266 151 282Q172 282 190 289Q210 278 232 284Q256 292 256 326Q260 340 278 358Q296 375 285 393Q277 406 263 406L254 467Q181 487 94 463L76 385Q61 334 63 282Z"/><path class="palm-crease" d="M92 335Q164 306 226 331 M115 374Q180 393 244 364 M239 332Q253 371 252 399"/>';
- let fingers=Array.from({length:8},(_,i)=>{let points=solveFinger(i,homePoint(i));return`<g class="articulated-finger" data-finger="${i}"><path class="finger-skin" d="${fingerOutline(points,i)}"/><path class="finger-edge" d="${fingerOutline(points,i).slice(0,-1)}"/><path class="joint-crease first" d="${crease(points,i,1)}"/><path class="joint-crease second" d="${crease(points,i,2)}"/><ellipse class="fingernail" cx="${points[3][0]}" cy="${points[3][1]+9}" rx="${i===0||i===7?7:9}" ry="11"/></g>`});
- const thumb='<path class="thumb-skin" d="M248 366Q257 340 276 316L297 284Q307 271 318 281Q327 289 319 304L305 336Q299 355 282 380Q265 397 251 385Z"/><path class="palm-crease" d="M286 314q12 4 19 12"/><ellipse class="fingernail" cx="307" cy="294" rx="7" ry="11" transform="rotate(30 307 294)"/>';
- return`<div class="keyboard-wrap"><svg viewBox="0 0 760 495" class="keyboard-svg articulated-keyboard" role="img" aria-label="Экранная клавиатура ${esc(l.name)} и подсказки пальцев"><defs><linearGradient id="handSkin" gradientUnits="userSpaceOnUse" x1="0" y1="110" x2="0" y2="465"><stop stop-color="var(--hand-fill)" stop-opacity=".67"/><stop offset="1" stop-color="var(--hand-fill)" stop-opacity=".2"/></linearGradient><linearGradient id="palmSkin" gradientUnits="userSpaceOnUse" x1="0" y1="110" x2="0" y2="465"><stop stop-color="var(--hand-fill)" stop-opacity=".4"/><stop offset="1" stop-color="var(--hand-fill)" stop-opacity=".02"/></linearGradient><linearGradient id="wholeHandFade" gradientUnits="userSpaceOnUse" x1="0" y1="130" x2="0" y2="495"><stop stop-color="white"/><stop offset=".65" stop-color="white" stop-opacity=".75"/><stop offset="1" stop-color="black"/></linearGradient><mask id="handOpacityMask" maskUnits="userSpaceOnUse" x="0" y="-100" width="760" height="700"><rect x="0" y="-100" width="760" height="700" fill="url(#wholeHandFade)"/></mask></defs><g class="key-layer">${keys}</g><g class="hands-layer" mask="url(#handOpacityMask)"><g id="leftHand">${palm}${fingers.slice(0,4).join('')}<g id="leftThumb" transform="translate(-16 10)">${thumb}</g></g><g id="rightHand"><g transform="translate(627 0) scale(-1 1)">${palm}<g id="rightThumb" transform="translate(-16 10)">${thumb}</g></g>${fingers.slice(4).join('')}</g></g></svg><p class="finger-hint" id="fingerHint"></p><p class="hand-caption">Подсказка по стандартной карте пальцев · F1 — показать помощь</p></div>`;
+ const l=LAYOUTS[layout],n=numberRow(layout),english=LAYOUTS.qwerty;let keys=functionRow();
+ const printed=layout==='йцукен'?numberRow('qwerty'):n;
+ keys+=[...printed.base].map((c,i)=>cap(layout==='йцукен'&&i===0?'ё':c,printed.shift[i],-1,i,keyBox(-1,i),{legend:layout==='йцукен'&&i===0?c:null})).join('');
+ keys+=cap('','',-2,0,{x:655,y:46,width:95,height:44},{label:'delete',kind:'modifier-key'});
+ keys+=cap('','',-2,1,{x:5,y:96,width:70,height:44},{label:'⇥',kind:'modifier-key'});
+ keys+=cap('','',-2,2,{x:5,y:146,width:82.5,height:44},{label:'⇪',kind:'modifier-key'});
+ keys+=l.rows.map((row,r)=>[...row].map((c,i)=>cap(c,l.shift[r][i],r,i,keyBox(r,i),{legend:layout==='йцукен'?english.rows[r][i]:null,home:r===1&&(i===3||i===6)})).join('')).join('');
+ keys+=cap('\\','|',5,0,keyBox(5,0));
+ keys+=cap('','',-2,3,{x:642.5,y:146,width:107.5,height:44},{label:'return ↵',kind:'modifier-key'});
+ keys+=cap('','',4,0,keyBox(4,0),{label:'⇧ shift',kind:'modifier-key'})+cap('','',4,1,keyBox(4,1),{label:'shift ⇧',kind:'modifier-key'});
+ keys+=cap(' ','',3,0,keyBox(3,0),{label:'',kind:'space-key'});
+ const labels={fn:'fn',control:'⌃',option:'⌥',command:'⌘',left:'◀',up:'▲',down:'▼',right:'▶'};
+ keys+=modifierBoxes().map(([name,box],i)=>{let html=cap('','',6,i,box,{label:labels[name],kind:'modifier-key '+name});if(name==='fn')html=html.replace('</g>','<g class="function-symbol globe-symbol" transform="translate(34 32)"><circle r="5"/><ellipse rx="2.5" ry="5"/><path d="M-5 0h10"/></g></g>');else if(['control','option','command'].includes(name))html=html.replace('</g>',`<text class="modifier-title" x="${box.width/2}" y="9">${name}</text></g>`);return html;}).join('');
+ return`<div class="keyboard-wrap mac-keyboard"><div class="keyboard-model"><span>MacBook Air M1</span><span>ANSI · ${esc(l.name)}</span></div><svg viewBox="0 0 760 540" class="keyboard-svg articulated-keyboard" role="img" aria-label="Клавиатура MacBook Air M1 ANSI, ${esc(l.name)}, и суставы пальцев"><defs><linearGradient id="handSkin" x1="0" y1="0" x2="0" y2="1"><stop stop-color="var(--hand-fill)"/><stop offset="1" stop-color="var(--hand-fill)"/></linearGradient><linearGradient id="wholeHandFade" gradientUnits="userSpaceOnUse" x1="0" y1="240" x2="0" y2="535"><stop stop-color="white"/><stop offset=".65" stop-color="white" stop-opacity=".85"/><stop offset="1" stop-color="black"/></linearGradient><mask id="handOpacityMask"><rect width="760" height="540" fill="url(#wholeHandFade)"/></mask></defs><g class="key-layer">${keys}</g><g class="hands-layer" mask="url(#handOpacityMask)"><g id="leftHand">${[0,1,2,3].map(fingerMarkup).join('')}${palm}<g id="leftThumb">${thumbMarkup()}</g></g><g id="rightHand">${[4,5,6,7].map(fingerMarkup).join('')}<g transform="translate(680 0) scale(-1 1)">${palm}<g id="rightThumb">${thumbMarkup()}</g></g></g></g></svg><p class="finger-hint" id="fingerHint"></p><p class="hand-caption">Домашний ряд: F и J · подсказка по стандартной карте пальцев</p></div>`;
 }
-function controller(wrap){let c=controllers.get(wrap);if(c)return c;c={wrap,target:null,pressed:null,pressUntil:0,motion:true,frame:null,time:0,points:Array.from({length:8},(_,i)=>homePoint(i)),offsets:[[0,0],[0,0]],thumb:0};controllers.set(wrap,c);return c}
+function controller(wrap){let c=controllers.get(wrap);if(c)return c;c={wrap,target:null,pressed:null,pressUntil:0,motion:true,frame:null,time:0,poses:Array.from({length:8},(_,i)=>jointPose(i,homePoint(i))),offsets:[[0,0],[0,0]],thumb:0};controllers.set(wrap,c);return c;}
 function draw(c,time){
- if(!c.wrap.isConnected){c.frame=null;return}let press=c.pressed&&time<c.pressUntil,key=press?c.pressed:c.target,dt=Math.min(40,time-c.time||16),factor=c.motion?1-Math.exp(-dt/48):1;c.time=time;let move=handOffset(key),side=key?.finger<4?0:1,shiftKey=key?.shift?{finger:key.finger<4?7:0,point:[key.finger<4?688:36,218]}:null,unsettled=!!press;
- for(let hand=0;hand<2;hand++){let offset=key&&key.finger<8&&side===hand?move:shiftKey?handOffset(shiftKey):[0,0];for(let axis=0;axis<2;axis++){c.offsets[hand][axis]+=(offset[axis]-c.offsets[hand][axis])*factor;if(Math.abs(c.offsets[hand][axis]-offset[axis])>.15)unsettled=true}c.wrap.querySelector(hand?'#rightHand':'#leftHand').setAttribute('transform',`translate(${c.offsets[hand].join(' ')})`)}
- for(let i=0;i<8;i++){let fingerKey=key?.finger===i?key:shiftKey?.finger===i?shiftKey:null,target=fingerKey?keyPoint(fingerKey):homePoint(i),hand=i<4?0:1,desired=fingerKey?[target[0]-c.offsets[hand][0],target[1]-c.offsets[hand][1]+(press?3:0)]:target;for(let axis=0;axis<2;axis++){c.points[i][axis]+=(desired[axis]-c.points[i][axis])*factor;if(Math.abs(c.points[i][axis]-desired[axis])>.15)unsettled=true}let points=solveFinger(i,c.points[i]),finger=c.wrap.querySelector(`[data-finger="${i}"]`);finger.classList.toggle('active-finger',!!fingerKey);finger.classList.toggle('finger-press',!!press&&key?.finger===i);finger.querySelector('.finger-skin').setAttribute('d',fingerOutline(points,i));finger.querySelector('.finger-edge').setAttribute('d',fingerOutline(points,i).slice(0,-1));finger.querySelector('.first').setAttribute('d',crease(points,i,1));finger.querySelector('.second').setAttribute('d',crease(points,i,2));let nail=finger.querySelector('.fingernail'),tip=points[3],distal=points[2],angle=Math.atan2(tip[0]-distal[0],distal[1]-tip[1])*180/Math.PI;nail.setAttribute('cx',tip[0]);nail.setAttribute('cy',tip[1]+9);nail.setAttribute('transform',`rotate(${angle} ${tip[0]} ${tip[1]})`)}
- let thumbTarget=key?.finger===8?press?1:.6:0;c.thumb+=(thumbTarget-c.thumb)*factor;if(Math.abs(c.thumb-thumbTarget)>.01)unsettled=true;c.wrap.querySelector('#leftThumb').setAttribute('transform',`translate(${-16+c.thumb*2} ${10-c.thumb*9}) rotate(${-c.thumb*3} 260 366)`);c.wrap.querySelector('#leftThumb').classList.toggle('active-thumb',key?.finger===8);
- c.wrap.querySelectorAll('.key-cap.pressed').forEach(k=>{if(!press)k.classList.remove('pressed')});c.frame=unsettled?requestAnimationFrame(t=>draw(c,t)):null;
+ if(!c.wrap.isConnected){c.frame=null;return;}
+ const pressing=!!c.pressed&&time<c.pressUntil,key=pressing?c.pressed:c.target,dt=Math.min(32,time-c.time||16),factor=c.motion?1-Math.exp(-dt/85):1;c.time=time;
+ const side=key?.finger<4?0:1,shiftKey=key?.shift?{finger:key.finger<4?7:0,row:4,col:key.finger<4?1:0}:null;let unsettled=pressing;
+ for(let hand=0;hand<2;hand++){
+  const offset=key&&key.finger<8&&side===hand?handOffset(key):shiftKey&&(shiftKey.finger<4?0:1)===hand?handOffset(shiftKey):[0,0];
+  for(let axis=0;axis<2;axis++){c.offsets[hand][axis]+=(offset[axis]-c.offsets[hand][axis])*factor;if(Math.abs(c.offsets[hand][axis]-offset[axis])>.08)unsettled=true;}
+  c.wrap.querySelector(hand?'#rightHand':'#leftHand').setAttribute('transform',`translate(${c.offsets[hand].join(' ')})`);
+ }
+ for(let i=0;i<8;i++){
+  const fingerKey=key?.finger===i?key:shiftKey?.finger===i?shiftKey:null,hand=i<4?0:1,target=fingerKey?keyPoint(fingerKey):homePoint(i),desired=fingerKey?[target[0]-c.offsets[hand][0],target[1]-c.offsets[hand][1]]:target,goal=jointPose(i,desired),pose=c.poses[i];
+  for(const angle of ['yaw','pitch','flex']){let delta=goal[angle]-pose[angle];if(angle==='yaw')delta=Math.atan2(Math.sin(delta),Math.cos(delta));pose[angle]+=delta*factor;if(Math.abs(delta)>.001)unsettled=true;}
+  const points=posePoints(i,pose),finger=c.wrap.querySelector(`[data-finger="${i}"]`);finger.dataset.mcp=pose.pitch.toFixed(3);finger.dataset.pip=pose.flex.toFixed(3);finger.dataset.dip=(pose.flex*.65).toFixed(3);
+  finger.classList.toggle('active-finger',!!fingerKey);finger.classList.toggle('finger-press',pressing&&c.pressed.finger===i);
+  for(const selector of ['.finger-skin','.finger-edge'])finger.querySelector(selector).setAttribute('d',fingerOutline(points,i));
+  finger.querySelector('.mcp').setAttribute('d',crease(points,i,1));finger.querySelector('.pip').setAttribute('d',crease(points,i,2));
+  const tip=points[3],previous=points[2],dx=previous[0]-tip[0],dy=previous[1]-tip[1],length=Math.hypot(dx,dy)||1,angle=Math.atan2(-dx,dy)*180/Math.PI,nail=finger.querySelector('.fingernail'),nx=tip[0]+dx/length*9,ny=tip[1]+dy/length*9;
+  for(const [attr,value] of Object.entries({cx:nx,cy:ny,rx:i===0||i===7?7:9,ry:10,transform:`rotate(${angle} ${nx} ${ny})`}))nail.setAttribute(attr,value);
+  const pad=finger.querySelector('.joint-pad'),joint=points[1];for(const [attr,value] of Object.entries({cx:joint[0],cy:joint[1],rx:i===0||i===7?10:13,ry:4,transform:`rotate(${angle} ${joint[0]} ${joint[1]})`}))pad.setAttribute(attr,value);
+ }
+ const thumbGoal=key?.finger===8?(pressing?1:.8):0;c.thumb+=(thumbGoal-c.thumb)*factor;if(Math.abs(c.thumb-thumbGoal)>.002)unsettled=true;
+ for(const [id,amount] of [['leftThumb',c.thumb],['rightThumb',0]]){const thumb=c.wrap.querySelector('#'+id),points=thumbPoints(amount),tip=points.at(-1);thumb.querySelector('.thumb-skin').setAttribute('d',fingerOutline(points,8));thumb.querySelector('.joint-crease').setAttribute('d',crease(points,8,1));const nail=thumb.querySelector('.fingernail');for(const [attr,value] of Object.entries({cx:tip[0]-4,cy:tip[1]+8,rx:8,ry:10,transform:`rotate(27 ${tip[0]-4} ${tip[1]+8})`}))nail.setAttribute(attr,value);thumb.classList.toggle('active-thumb',amount>.1);}
+ if(!pressing)c.wrap.querySelectorAll('.key-cap.pressed').forEach(k=>k.classList.remove('pressed'));
+ c.frame=unsettled?requestAnimationFrame(t=>draw(c,t)):null;
 }
-function schedule(c){if(c.frame===null)c.frame=requestAnimationFrame(t=>draw(c,t))}
+function schedule(c){if(c.frame===null)c.frame=requestAnimationFrame(t=>draw(c,t));}
 export function updateKeyboard(root,layout,char,{keyboard=true,hands=true,handsMotion=true,hintMode='always',reveal=false}={}){
- let wrap=root.querySelector('.keyboard-wrap');if(!wrap)return;wrap.hidden=!keyboard||hintMode!=='always'&&!reveal;wrap.classList.toggle('no-hands',!hands);if(wrap.hidden)return;let c=controller(wrap),key=findKey(char||'',layout);c.target=key;c.motion=handsMotion&&!matchMedia('(prefers-reduced-motion: reduce)').matches;
- wrap.querySelectorAll('.key-cap.target,.key-cap.shift-target').forEach(k=>k.classList.remove('target','shift-target'));if(key){wrap.querySelector(`.key-cap[data-row="${key.row}"][data-col="${key.col}"]`)?.classList.add('target');if(key.shift)wrap.querySelector(`.key-cap[data-row="4"][data-col="${key.finger<4?1:0}"]`)?.classList.add('shift-target')}
- wrap.querySelector('#fingerHint').textContent=key?`${FINGER_NAMES[key.finger]} · ${char===' '?'пробел':char}${key.shift?' · Shift другой рукой':''}`:char?`Набери «${char}»`:'Пальцы спокойно лежат на домашнем ряду';schedule(c);
+ const wrap=root.querySelector('.keyboard-wrap');if(!wrap)return;wrap.hidden=!keyboard||hintMode!=='always'&&!reveal;wrap.classList.toggle('no-hands',!hands);if(wrap.hidden)return;
+ const c=controller(wrap),key=findKey(char||'',layout);c.target=key;c.motion=handsMotion&&!matchMedia('(prefers-reduced-motion: reduce)').matches;
+ wrap.querySelectorAll('.key-cap.target,.key-cap.shift-target').forEach(k=>k.classList.remove('target','shift-target'));
+ if(key){wrap.querySelector(`.key-cap[data-row="${key.row}"][data-col="${key.col}"]`)?.classList.add('target');if(key.shift)wrap.querySelector(`.key-cap[data-row="4"][data-col="${key.finger<4?1:0}"]`)?.classList.add('shift-target');}
+ wrap.querySelector('#fingerHint').textContent=key?`${FINGER_NAMES[key.finger]} · ${char===' '?'пробел':char}${key.shift?' · Shift другой рукой':''}`:char?`Набери «${char}»`:'Пальцы спокойно лежат на F и J';schedule(c);
 }
-export function pressKeyboard(root,layout,char,settings){let wrap=root.querySelector('.keyboard-wrap');if(!wrap||wrap.hidden||!settings.handsMotion)return;let key=findKey(char,layout);if(!key)return;let c=controller(wrap);c.pressed=key;c.pressUntil=performance.now()+110;wrap.querySelectorAll('.key-cap.pressed').forEach(k=>k.classList.remove('pressed'));wrap.querySelector(`.key-cap[data-row="${key.row}"][data-col="${key.col}"]`)?.classList.add('pressed');schedule(c)}
+export function pressKeyboard(root,layout,char,settings){
+ const wrap=root.querySelector('.keyboard-wrap');if(!wrap||wrap.hidden)return;const key=findKey(char,layout);if(!key)return;const c=controller(wrap);c.pressed=key;c.pressUntil=performance.now()+75;
+ wrap.querySelectorAll('.key-cap.pressed').forEach(k=>k.classList.remove('pressed'));wrap.querySelector(`.key-cap[data-row="${key.row}"][data-col="${key.col}"]`)?.classList.add('pressed');schedule(c);
+}
