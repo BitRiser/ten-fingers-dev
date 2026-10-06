@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
-import {createTypingAudio,typingSoundKey,SWITCHES,MEME_SAMPLES} from '../dist/typing-audio.mjs';
+import {createTypingAudio,typingSoundKey,SWITCHES,MEME_SAMPLES,MEME_CLIPS,KEY_SAMPLE_IDS} from '../dist/typing-audio.mjs';
 import {loadData} from '../dist/core.mjs';
 import {parseBackup,backupData,ensureLearning} from '../dist/learning.mjs';
 import {readFile} from 'node:fs/promises';
 const setting={soundMode:'off',soundVolume:35,keyboardSwitch:'mac'};
 let instance;
-class Param{setValueAtTime(v){this.value=v}setTargetAtTime(v){this.value=v}exponentialRampToValueAtTime(v){this.value=v}cancelScheduledValues(){}}
-class Node{constructor(ctx,type){this.ctx=ctx;this.type=type;this.gain=new Param();this.frequency=new Param();this.playbackRate=new Param();this.Q={};ctx.nodes.push(this)}connect(){}disconnect(){this.disconnected=true}start(){this.started=true}stop(){this.stopped=true}}
-class Context{constructor(){instance=this;this.nodes=[];this.sampleRate=8000;this.currentTime=0;this.state='running';this.destination={}}createGain(){return new Node(this,'gain')}createBufferSource(){return new Node(this,'source')}createOscillator(){return new Node(this,'oscillator')}createBiquadFilter(){return new Node(this,'filter')}createBuffer(c,n,s){return {duration:n/s,getChannelData:()=>new Float32Array(n)}}async decodeAudioData(){return {duration:1,decoded:true}}async resume(){}}
+class Param{constructor(){this.events=[];this.value=1}setValueAtTime(v,t){this.value=v;this.events.push({kind:'set',value:v,at:t})}setTargetAtTime(v){this.value=v}exponentialRampToValueAtTime(v){this.value=v}linearRampToValueAtTime(v,t){this.value=v;this.events.push({kind:'ramp',value:v,at:t})}cancelScheduledValues(){}}
+class Node{constructor(ctx,type){this.ctx=ctx;this.type=type;this.gain=new Param();this.frequency=new Param();this.playbackRate=new Param();this.Q={};ctx.nodes.push(this)}connect(node){this.output=node}disconnect(){this.disconnected=true}start(...args){this.started=true;this.startArgs=args}stop(at){this.stopped=true;this.stopAt=at;this.stops=(this.stops||0)+1}}
+class Context{constructor(){instance=this;this.nodes=[];this.sampleRate=8000;this.currentTime=0;this.state='running';this.destination={}}createGain(){return new Node(this,'gain')}createBufferSource(){return new Node(this,'source')}createOscillator(){return new Node(this,'oscillator')}createBiquadFilter(){return new Node(this,'filter')}createBuffer(c,n,s){return {duration:n/s,getChannelData:()=>new Float32Array(n)}}async decodeAudioData(){return {duration:3,decoded:true}}async resume(){}}
 let fetches=0;
 const audio=createTypingAudio({getSettings:()=>setting,AudioContext:Context,fetcher:async()=>{fetches++;return {ok:true,arrayBuffer:async()=>new ArrayBuffer(4)}}});
 audio.key('f');audio.prime();assert.equal(instance,undefined,'off never creates an audio context');
@@ -17,10 +17,16 @@ for(let i=0;i<80;i++)audio.key('f');
 const timers=instance.nodes.filter(n=>n.type==='source'&&n.buffer?.duration===.14);
 assert.equal(timers.filter(n=>!n.stopped).length,8,'fast normal typing retains at most eight voice groups');
 audio.stop();assert(timers.every(n=>n.stopped),'pause stops all voices');
-setting.soundMode='gachi';audio.sync();audio.prime();audio.prime();await audio.preview('woo');assert.equal(fetches,2,'samples decode once and concurrent priming shares loads');
+setting.soundMode='gachi';audio.sync();audio.prime();audio.prime();await audio.preview('woo');assert.equal(fetches,Object.keys(MEME_SAMPLES).length,'samples decode once and concurrent priming shares loads');
 for(let i=0;i<80;i++)audio.key('f');
 const memes=instance.nodes.filter(n=>n.buffer?.decoded);
-assert.equal(memes.filter(n=>!n.stopped).length,1,'meme voices replace each other rather than stack');
+assert(memes.every(n=>n.stopAt<.34),'every typing fragment has a bounded short lifetime');
+const recent=memes.slice(1).map(n=>n.buffer);
+assert(recent.every((b,i)=>!i||b!==recent[i-1]),'shuffle never repeats the same recording consecutively');
+for(let i=0;i+KEY_SAMPLE_IDS.length<=recent.length;i+=KEY_SAMPLE_IDS.length)assert.equal(new Set(recent.slice(i,i+KEY_SAMPLE_IDS.length)).size,KEY_SAMPLE_IDS.length,'each full shuffle visits every clip');
+assert(memes.every(n=>n.output.gain.events.some(e=>e.kind==='ramp'&&e.value===0&&e.at>0)),'all fragments ramp down to silence');
+assert(memes.slice(0,-1).every(n=>n.stops>=2),'new key crossfades the previous fragment');
+const exercise={};assert.equal(audio.finish(exercise),true);const finished=instance.nodes.filter(n=>n.buffer?.decoded).at(-1);assert(finished.startArgs[2]<=MEME_CLIPS.finish.seconds);const finishedCount=instance.nodes.length;assert.equal(audio.finish(exercise),false);assert.equal(instance.nodes.length,finishedCount,'finishing the same exercise cannot replay the final line');
 setting.soundVolume=0;audio.sync();assert(memes.every(n=>n.stopped));const count=instance.nodes.length;audio.key('f');assert.equal(instance.nodes.length,count,'zero volume is silent');assert.equal((await audio.preview()).ok,false);
 setting.soundVolume=35;setting.soundMode='off';audio.sync();assert.equal((await audio.preview()).ok,false);
 for(const e of [{key:'f',repeat:true},{key:'f',isComposing:true},{key:'v',metaKey:true},{key:'v',ctrlKey:true},{key:'Escape'},{key:'Shift'},{key:'F1'}])assert.equal(typingSoundKey(e),null);
@@ -31,5 +37,5 @@ const failed=createTypingAudio({getSettings:()=>setting,AudioContext:Context,fet
 const legacy=ensureLearning(loadData({getItem:()=>null}));delete legacy.settings.soundMode;delete legacy.settings.soundVolume;delete legacy.settings.keyboardSwitch;
 const migrated=parseBackup(backupData(legacy));assert.equal(migrated.settings.soundMode,'off');assert.equal(migrated.settings.soundVolume,35);
 for(const [key,value] of [['soundVolume',101],['soundVolume',-1],['soundMode','unknown'],['keyboardSwitch','unknown']]){const copy=structuredClone(migrated);copy.settings[key]=value;assert.throws(()=>parseBackup(backupData(copy)));}
-for(const path of Object.values(MEME_SAMPLES)){const file=await readFile(new URL(path.replace('./','../dist/'),import.meta.url));assert(file.length>2000,'bundled audio is present');assert.equal(file.subarray(0,3).toString(),'ID3','asset is an MP3, not an HTML error page');}
-console.log('Passed: lazy/off/mute, four switch profiles, bounded voices, shared sample loading, preview cancellation, failed loads, physical-key filtering, old backups and bundled MP3 assets.');
+for(const [id,path] of Object.entries(MEME_SAMPLES)){const file=await readFile(new URL(path.replace('./','../dist/'),import.meta.url));assert.equal(file.subarray(0,4).toString(),'RIFF');assert.equal(file.subarray(8,12).toString(),'WAVE');assert.equal(file.readUInt16LE(22),1,'compact mono asset');assert.equal(file.readUInt16LE(34),16);const duration=file.readUInt32LE(40)/file.readUInt32LE(28);assert(Math.abs(duration-MEME_CLIPS[id].seconds)<.001,'file itself is trimmed to advertised duration');assert.equal(file.readInt16LE(44),0,'soft attack starts at silence');assert.equal(file.readInt16LE(file.length-2),0,'soft end avoids clicks');}
+console.log('Passed: short shuffled clips without repeats, fade-out and replacement crossfade, one final per exercise, lazy/off/mute, switch profiles, bounded voices, shared loading, cancellation, failed loads, physical-key filtering, backups and trimmed WAV assets.');

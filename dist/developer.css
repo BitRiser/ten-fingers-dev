@@ -606,4 +606,9 @@ dialog.onboarding-dialog{width:min(750px,calc(100vw - 28px));padding:28px 32px;m
 .sound-volume-row input{width:100%;accent-color:var(--accent);cursor:pointer;min-height:26px;margin:0}
 .sound-preview-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:18px}.sound-preview-actions button{display:flex;align-items:center;gap:7px;font-size:11px;min-height:38px}.sound-preview-actions .icon{width:15px;height:15px}
 #soundPreviewStatus{font-size:10px;line-height:1.7;color:var(--muted)}
+.meme-sample-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px}
+.meme-sample-button{display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;min-height:44px;padding:10px;border:1px solid var(--line);border-radius:5px;background:var(--nav);font-size:10px}
+.meme-sample-button:hover,.meme-sample-button:focus-visible{border-color:var(--accent);color:var(--accent)}
+.meme-sample-button small{font-size:8px;color:var(--muted);white-space:nowrap}
+@media(max-width:560px){.meme-sample-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.sound-settings-heading h3{font-size:20px}.sound-modes{gap:7px}.sound-mode-card{padding:12px 9px}.sound-mode-card strong{font-size:10px}.sound-mode-card small{font-size:9px}.sound-mode-mark{font-size:22px}.switch-profiles{grid-template-columns:1fr}.sound-subheading{align-items:flex-start;flex-wrap:wrap;gap:6px}.switch-profile{padding:13px}.switch-card-copy>span{font-size:10px}.keyboard-sound-button{font-size:9px;gap:8px}.sound-mode-value{padding-left:8px}.sound-preview-actions{gap:8px}}
