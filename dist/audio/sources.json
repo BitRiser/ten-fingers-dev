@@ -1,0 +1,12 @@
+[
+  {
+    "file": "gachi-woo.mp3",
+    "source": "https://github.com/styler/gachi-touchbar/blob/master/gachi/WOO.mp3",
+    "git_blob_sha": "9bc709af73e110ee8c8244ab987ec50ab346f4b1"
+  },
+  {
+    "file": "gachi-amazing.mp3",
+    "source": "https://github.com/styler/gachi-touchbar/blob/master/gachi/That's%20amazing.mp3",
+    "git_blob_sha": "d0359d8a2133e2cda3e8751a768dddfd2343cce8"
+  }
+]

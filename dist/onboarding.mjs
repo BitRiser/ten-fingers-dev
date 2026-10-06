@@ -47,9 +47,10 @@ export function createOnboarding(api){
  function bindDrill(){
   const input=document.getElementById('onboardingInput');input.value=drill.value;let composing=false;
   const accept=()=>{if(composing)return;const value=input.value.normalize('NFC');if(/\s/.test(value)){input.value=drill.value;updateDrill('Печатай текущую пару. Пробел нажми после неё.');return;}const expected=drill.expected,wrongScript=expected&&(/[а-яё]/iu.test(expected)&&/[a-z]/iu.test(value)||/[a-z]/iu.test(expected)&&/[а-яё]/iu.test(value));if(wrongScript){input.value=drill.value;updateDrill('Переключи раскладку на компьютере: '+LAYOUTS[selectedLayout].name+'.');return;}drill.set(value);updateDrill();};
+  input.addEventListener('focus',()=>api.onTypingFocus?.());input.addEventListener('blur',()=>api.onTypingBlur?.());
   input.addEventListener('compositionstart',()=>{composing=true});input.addEventListener('compositionend',()=>{composing=false;accept()});input.addEventListener('input',accept);
   input.addEventListener('paste',e=>{e.preventDefault();updateDrill('Попробуй набрать пару с клавиатуры.');});input.addEventListener('drop',e=>e.preventDefault());
-  input.addEventListener('keydown',e=>{if(e.isComposing||composing)return;if(e.key===' '){e.preventDefault();if(drill.advance())input.value='';updateDrill();if(drill.done)document.getElementById('onboardingNext').focus();}else if(e.key==='Enter'){e.preventDefault();updateDrill('Для перехода к следующему слову нажми пробел.');}});
+  input.addEventListener('keydown',e=>{if(e.isComposing||composing)return;api.onTypingKey?.(e);if(e.key===' '){e.preventDefault();if(drill.advance())input.value='';updateDrill();if(drill.done)document.getElementById('onboardingNext').focus();}else if(e.key==='Enter'){e.preventDefault();updateDrill('Для перехода к следующему слову нажми пробел.');}});
   updateDrill();
  }
  function start(){active=true;step=0;const s=api.getData().settings;lang=s.language;selectedLayout=s.layouts[lang];path='lesson';drill=new TutorialDrill(tutorialWords(selectedLayout));show();}

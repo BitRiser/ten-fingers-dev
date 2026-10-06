@@ -93,10 +93,10 @@ export function parseBackup(raw){
  if(!object(d.settings)||!object(d.progress)||!LANGUAGES[d.settings.language])fail();
  const settings={...DEFAULT_SETTINGS,...d.settings,layouts:{...DEFAULT_SETTINGS.layouts,...d.settings.layouts}};
  for(const lang of Object.keys(LANGUAGES))if(!availableLayouts(lang).includes(settings.layouts[lang]))fail();
- const enums={theme:['dark','light','warm'],unit:['cpm','wpm','cps'],dailyType:['sessions','time'],wordsView:['rows','tape'],caretStyle:['line','block','underline'],caretSpeed:['off','slow','medium','fast'],testMode:['time','words','quote'],hintMode:['always','request','off']};
+ const enums={keyboardSwitch:['mac','red','brown','blue'],soundMode:['off','normal','gachi'],theme:['dark','light','warm'],unit:['cpm','wpm','cps'],dailyType:['sessions','time'],wordsView:['rows','tape'],caretStyle:['line','block','underline'],caretSpeed:['off','slow','medium','fast'],testMode:['time','words','quote'],hintMode:['always','request','off']};
  for(const [key,values] of Object.entries(enums))if(!values.includes(settings[key]))fail();
  for(const [key,value] of Object.entries(DEFAULT_SETTINGS))if(typeof value==='boolean'&&typeof settings[key]!=='boolean')fail();
- const bounds={speedGoal:[1,3000],dailyGoal:[1,200],dailyMinutes:[1,300],tapeMargin:[0,80],fontSize:[18,48],testTime:[1,14400],testWords:[1,10000],letterSpacing:[0,5]};
+ const bounds={soundVolume:[0,100],speedGoal:[1,3000],dailyGoal:[1,200],dailyMinutes:[1,300],tapeMargin:[0,80],fontSize:[18,48],testTime:[1,14400],testWords:[1,10000],letterSpacing:[0,5]};
  for(const [key,[min,max]] of Object.entries(bounds))if(!Number.isFinite(settings[key])||settings[key]<min||settings[key]>max)fail();
  const records=items=>{if(!Array.isArray(items)||items.length>20000)fail();for(const r of items){if(!object(r))fail();for(const key of ['cpm','duration','accuracy','at','correct','errors'])if(r[key]!==undefined&&(!Number.isFinite(r[key])||r[key]<0))fail();if(r.accuracy>100)fail();}};
  const progress=(p,lang)=>{
