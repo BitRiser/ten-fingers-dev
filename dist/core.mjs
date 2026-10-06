@@ -1,13 +1,13 @@
 import {LANGUAGES,DEFAULT_SETTINGS,LESSON_GROUPS,mapPhysicalKeys} from './data.mjs';
 import {EXTRA_WORDS} from './vocabulary.mjs';
-export const PRACTICE_POLICY=2, SAMPLE_SPEED_RATIO=.7, SAMPLE_ACCURACY=95;
+export const PRACTICE_POLICY=2, SAMPLE_SPEED_RATIO=.7, SAMPLE_ACCURACY=95, REQUIRED_SAMPLES=3;
 export function createProgress(){return {unlocked:5,letters:{},history:[],lessons:{},lessonHistory:[],tests:[],samplePolicy:PRACTICE_POLICY}}
 export function confidence(key,goal){
- if(!key||key.samples<5||!key.lastQualified||key.lastAccuracy<SAMPLE_ACCURACY||!Number.isFinite(goal)||goal<=0)return 0;
+ if(!key||key.samples<REQUIRED_SAMPLES||!key.lastQualified||key.lastAccuracy<SAMPLE_ACCURACY||!Number.isFinite(goal)||goal<=0)return 0;
  // Rounding 99.9% up to 100% must never open a letter below the actual goal.
  return Math.max(0,Math.min(100,Math.floor(key.lastCPM/goal*100)));
 }
-export function targetLetter(progress,lang,goal){let active=[...LANGUAGES[lang].alphabet].slice(0,progress.unlocked);return active.find(c=>!progress.letters[c]||progress.letters[c].samples<5)||active.reduce((a,c)=>confidence(progress.letters[c],goal)<confidence(progress.letters[a],goal)?c:a,active[0])}
+export function targetLetter(progress,lang,goal){let active=[...LANGUAGES[lang].alphabet].slice(0,progress.unlocked);return active.find(c=>!progress.letters[c]||progress.letters[c].samples<REQUIRED_SAMPLES)||active.reduce((a,c)=>confidence(progress.letters[c],goal)<confidence(progress.letters[a],goal)?c:a,active[0])}
 export function assessPractice(result,goal,letters){
  const floor=goal*SAMPLE_SPEED_RATIO,reasons=[],keys={},accepted=[];
  if(!Number.isFinite(goal)||goal<=0||!Number.isFinite(result.cpm)||result.cpm<0||!Number.isFinite(result.duration)||result.duration<=0)reasons.push('measurement');

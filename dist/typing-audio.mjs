@@ -5,16 +5,13 @@ export const SWITCHES={
  blue:{name:'Clicky Blue',kind:'Кликающий',description:'Яркий двойной щелчок механики.',color:'#7eaeff',frequency:2600,body:420,noise:.65,decay:.045}
 };
 export const MEME_CLIPS={
- woo:{file:'gachi-woo.wav',name:'Woo',seconds:.24},
- comeon:{file:'gachi-come-on.wav',name:'Come on',seconds:.22},
- yes:{file:'gachi-yes-sir.wav',name:'Yes sir',seconds:.19},
- round:{file:'gachi-round.wav',name:'One more round',seconds:.25},
- surprise:{file:'gachi-surprise.wav',name:'Big surprise',seconds:.27},
- amazing:{file:'gachi-amazing.wav',name:'That’s amazing',seconds:.28},
- finish:{file:'gachi-finish.wav',name:'That’s power, son',seconds:1.6562}
+ tap:{file:'gachi-tap.wav',name:'Вокальное нажатие',seconds:.1,kind:'key'},
+ yes:{file:'gachi-yes-sir.wav',name:'Yes sir',seconds:1.11787,kind:'finish'},
+ amazing:{file:'gachi-amazing.wav',name:'That’s amazing',seconds:.70571,kind:'finish'},
+ finish:{file:'gachi-finish.wav',name:'That’s power, son',seconds:1.65764,kind:'finish'}
 };
 export const MEME_SAMPLES=Object.fromEntries(Object.entries(MEME_CLIPS).map(([id,c])=>[id,'./audio/'+c.file]));
-export const KEY_SAMPLE_IDS=Object.keys(MEME_CLIPS).filter(id=>id!=='finish');
+export const FINAL_SAMPLE_IDS=Object.keys(MEME_CLIPS).filter(id=>MEME_CLIPS[id].kind==='finish');
 export function typingSoundKey(e){return !e.repeat&&!e.isComposing&&!e.ctrlKey&&!e.metaKey&&(e.key?.length===1||e.key==='Backspace'||e.key==='Enter')?e.key:null;}
 // Sound is a side effect of physical typing. It never drives the lesson clock,
 // input, scoring, or progress, and voices are bounded even at very high speeds.
@@ -51,17 +48,18 @@ export function createTypingAudio({getSettings,AudioContext=globalThis.AudioCont
   const body=ctx.createOscillator();body.type='sine';body.frequency.setValueAtTime(profile.body*scale,now);body.frequency.exponentialRampToValueAtTime(profile.body*.45*scale,now+.035);envelope(body,.18,now,.055);
   if(config().switchType==='brown'||config().switchType==='blue'){const click=ctx.createOscillator();click.type='triangle';click.frequency.value=profile.frequency*scale;envelope(click,config().switchType==='blue'?.13:.065,now+.007,.014);}
  }
- function nextSample(){
-  if(!bag.length){bag=KEY_SAMPLE_IDS.filter(id=>samples.has(id));for(let i=bag.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]];}if(bag.length>1&&bag.at(-1)===lastSample)[bag[0],bag[bag.length-1]]=[bag.at(-1),bag[0]];}
+ function nextFinal(){
+  if(!bag.length){bag=FINAL_SAMPLE_IDS.filter(id=>samples.has(id));for(let i=bag.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]];}if(bag.length>1&&bag.at(-1)===lastSample)[bag[0],bag[bag.length-1]]=[bag.at(-1),bag[0]];}
   return lastSample=bag.pop();
  }
  function meme(id){
   const buffer=samples.get(id);if(!buffer)return;
-  stopVoice(memeVoice);const source=ctx.createBufferSource(),rate=id==='finish'?1:1+(random()-.5)*.04,length=Math.min(MEME_CLIPS[id].seconds,buffer.duration),duration=length/rate,now=ctx.currentTime,v=voice(duration+.05),fade=Math.min(id==='finish'?.18:.075,duration*.4),attack=Math.min(.008,duration*.1),g=v.gain.gain;
-  source.buffer=buffer;source.playbackRate.value=rate;source.connect(v.gain);g.setValueAtTime(0,now);g.linearRampToValueAtTime(.75,now+attack);g.setValueAtTime(.75,Math.max(now+attack,now+duration-fade));g.linearRampToValueAtTime(0,now+duration);source.start(now,0,length);source.stop(now+duration+.005);v.nodes.push(source);memeVoice=v;
+  const final=MEME_CLIPS[id].kind==='finish',level=final?.75:.42;
+  stopVoice(memeVoice);const source=ctx.createBufferSource(),rate=final?1:1+(random()-.5)*.12,length=Math.min(MEME_CLIPS[id].seconds,buffer.duration),duration=length/rate,now=ctx.currentTime,v=voice(duration+.05),fade=Math.min(final?.12:.05,duration*.45),attack=Math.min(.006,duration*.1),g=v.gain.gain;
+  source.buffer=buffer;source.playbackRate.value=rate;source.connect(v.gain);g.setValueAtTime(0,now);g.linearRampToValueAtTime(level,now+attack);g.setValueAtTime(level,Math.max(now+attack,now+duration-fade));g.linearRampToValueAtTime(0,now+duration);source.start(now,0,length);source.stop(now+duration+.005);v.nodes.push(source);memeVoice=v;
  }
- function key(key){const s=config();if(s.mode==='off'||!s.volume)return;try{ensure();if(s.mode==='gachi'){const id=nextSample();if(!id){prime();return;}meme(id);}else normal(key);}catch{failure();}}
- function finish(session){if(session&&completedSessions.has(session))return false;if(session)completedSessions.add(session);const s=config();if(s.mode!=='gachi'||!s.volume)return false;try{ensure();if(!samples.has('finish')){prime();return false;}meme('finish');return true;}catch{failure();return false;}}
- async function preview(id){const s=config();stop();if(s.mode==='off')return {ok:false,message:'Выбери обычный звук или гачимучи.'};if(!s.volume)return {ok:false,message:'Увеличь громкость для предпрослушивания.'};const ticket=epoch;try{ensure();let clip=null;if(s.mode==='gachi'){await prepare();if(ticket!==epoch)return {ok:false};const selected=MEME_CLIPS[id]?id:nextSample();meme(selected);clip=MEME_CLIPS[selected];}else normal('f');reported=false;return {ok:true,...(clip?{name:clip.name,milliseconds:Math.round(clip.seconds*1000)}:{})};}catch{failure();return {ok:false,message:'Аудио недоступно. Проверь соединение и попробуй снова.'};}}
+ function key(key){const s=config();if(s.mode==='off'||!s.volume)return;try{ensure();if(s.mode==='gachi'){if(!samples.has('tap')){prime();return;}meme('tap');}else normal(key);}catch{failure();}}
+ function finish(session){if(session&&completedSessions.has(session))return false;if(session)completedSessions.add(session);const s=config();if(s.mode!=='gachi'||!s.volume)return false;try{ensure();const id=nextFinal();if(!id){prime();return false;}meme(id);return true;}catch{failure();return false;}}
+ async function preview(id){const s=config();stop();if(s.mode==='off')return {ok:false,message:'Выбери обычный звук или гачимучи.'};if(!s.volume)return {ok:false,message:'Увеличь громкость для предпрослушивания.'};const ticket=epoch;try{ensure();let clip=null;if(s.mode==='gachi'){await prepare();if(ticket!==epoch)return {ok:false};const selected=id==='final'?nextFinal():MEME_CLIPS[id]?id:'tap';meme(selected);clip=MEME_CLIPS[selected];}else normal('f');reported=false;return {ok:true,...(clip?{name:clip.name,milliseconds:Math.round(clip.seconds*1000)}:{})};}catch{failure();return {ok:false,message:'Аудио недоступно. Проверь соединение и попробуй снова.'};}}
  return {key,prime,preview,finish,sync,stop};
 }

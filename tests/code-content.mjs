@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {CODE_TRACKS,codeExercise,codeTokenType} from '../dist/code-content.mjs';
+import {CODE_TRACKS,CODE_VOLUMES,codeExercise,codeTokenType} from '../dist/code-content.mjs';
 import {LANGUAGES,findKey} from '../dist/data.mjs';
 import {TypingSession,practiceMaterial,loadData} from '../dist/core.mjs';
 import {ensureLearning,progressFor,learningFor,backupData,parseBackup} from '../dist/learning.mjs';
@@ -20,6 +20,13 @@ for(const [track,definition] of Object.entries(CODE_TRACKS)){
  assert.equal(codeExercise(track,definition.items.length).text,codeExercise(track,0).text);
  assert.equal(codeExercise(track,-1).text,codeExercise(track,definition.items.length-1).text);
 }
+for(const track of Object.keys(CODE_TRACKS)){
+ let previous=0;
+ for(const [volume,option] of Object.entries(CODE_VOLUMES)){const item=codeExercise(track,0,volume);assert.equal(item.parts,option.count);assert.equal(item.words.join(' '),item.text);assert(item.words.length>previous);previous=item.words.length;for(let i=0;i<option.count;i++)assert(item.text.includes(CODE_TRACKS[track].items[i][1]),'volume keeps complete authored examples');}
+}
+assert.throws(()=>codeExercise('javascript',0,'missing'));
+assert.equal(data.settings.codeTrack,'javascript');data.settings.codeTrack='python';assert.equal(parseBackup(backupData(data)).settings.codeTrack,'python');
+assert.equal(data.settings.codeVolume,'short');data.settings.codeVolume='long';assert.equal(parseBackup(backupData(data)).settings.codeVolume,'long');const invalidVolume=structuredClone(data);invalidVolume.settings.codeVolume='invalid';assert.throws(()=>parseBackup(backupData(invalidVolume)));
 assert.throws(()=>codeExercise('missing'));
 assert.equal(findKey('\\','qwerty').row,5);assert.equal(findKey('|','qwerty').shift,true);assert.equal(findKey('|','qwerty').finger,7);
 assert.equal(codeTokenType('const'),'keyword');assert.equal(codeTokenType('"Ada";'),'string');assert.equal(codeTokenType('42'),'number');assert.equal(codeTokenType('=>'),'operator');assert.equal(codeTokenType('values'),'plain');

@@ -1,35 +1,14 @@
 [
   {
-    "file": "gachi-woo.wav",
+    "file": "gachi-tap.wav",
     "source": "https://github.com/styler/gachi-touchbar/blob/master/gachi/WOO.mp3",
     "source_git_blob_sha": "9bc709af73e110ee8c8244ab987ec50ab346f4b1",
     "processing": {
       "format": "mono PCM16 WAV, 22050 Hz",
-      "start_seconds": 0.0014,
-      "duration_seconds": 0.24,
-      "boundary_fade_ms": 4
-    }
-  },
-  {
-    "file": "gachi-amazing.wav",
-    "source": "https://github.com/styler/gachi-touchbar/blob/master/gachi/That's%20amazing.mp3",
-    "source_git_blob_sha": "d0359d8a2133e2cda3e8751a768dddfd2343cce8",
-    "processing": {
-      "format": "mono PCM16 WAV, 22050 Hz",
-      "start_seconds": 0.0,
-      "duration_seconds": 0.28,
-      "boundary_fade_ms": 4
-    }
-  },
-  {
-    "file": "gachi-come-on.wav",
-    "source": "https://github.com/styler/gachi-touchbar/blob/master/assets/MarkW/Come%20on.mp3",
-    "source_git_blob_sha": "a48a06636654fe9b2d6b092e57c4784dda0c5021",
-    "processing": {
-      "format": "mono PCM16 WAV, 22050 Hz",
-      "start_seconds": 0.0893,
-      "duration_seconds": 0.22,
-      "boundary_fade_ms": 4
+      "start_seconds": 0.01624,
+      "duration_seconds": 0.1,
+      "boundary_fade_ms": 6,
+      "use": "short nonsexual cheer fragment"
     }
   },
   {
@@ -39,30 +18,21 @@
     "processing": {
       "format": "mono PCM16 WAV, 22050 Hz",
       "start_seconds": 0.0,
-      "duration_seconds": 0.19,
-      "boundary_fade_ms": 4
+      "duration_seconds": 1.11787,
+      "boundary_fade_ms": 6,
+      "use": "complete neutral final phrase"
     }
   },
   {
-    "file": "gachi-round.wav",
-    "source": "https://github.com/styler/gachi-touchbar/blob/master/assets/BillyH/One%20more%20round.mp3",
-    "source_git_blob_sha": "9a68b61798d6b86b31ed9d142bd19a9b577befb6",
+    "file": "gachi-amazing.wav",
+    "source": "https://github.com/styler/gachi-touchbar/blob/master/gachi/That's%20amazing.mp3",
+    "source_git_blob_sha": "d0359d8a2133e2cda3e8751a768dddfd2343cce8",
     "processing": {
       "format": "mono PCM16 WAV, 22050 Hz",
       "start_seconds": 0.0,
-      "duration_seconds": 0.25,
-      "boundary_fade_ms": 4
-    }
-  },
-  {
-    "file": "gachi-surprise.wav",
-    "source": "https://github.com/styler/gachi-touchbar/blob/master/assets/BillyH/Big%20surprise.mp3",
-    "source_git_blob_sha": "fca98968d4cd3c86b5f8b54b1c2582ca302dabf7",
-    "processing": {
-      "format": "mono PCM16 WAV, 22050 Hz",
-      "start_seconds": 0.0,
-      "duration_seconds": 0.27,
-      "boundary_fade_ms": 4
+      "duration_seconds": 0.70571,
+      "boundary_fade_ms": 6,
+      "use": "complete neutral final phrase"
     }
   },
   {
@@ -71,9 +41,10 @@
     "source_git_blob_sha": "0b02a71004c8353785489360bc396c826964b6c8",
     "processing": {
       "format": "mono PCM16 WAV, 22050 Hz",
-      "start_seconds": 0.015,
-      "duration_seconds": 1.6562,
-      "boundary_fade_ms": 4
+      "start_seconds": 0.01356,
+      "duration_seconds": 1.65764,
+      "boundary_fade_ms": 6,
+      "use": "complete neutral final phrase"
     }
   }
 ]

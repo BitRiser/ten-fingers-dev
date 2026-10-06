@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {createTypingAudio,typingSoundKey,SWITCHES,MEME_SAMPLES,MEME_CLIPS,KEY_SAMPLE_IDS} from '../dist/typing-audio.mjs';
+import {createTypingAudio,typingSoundKey,SWITCHES,MEME_SAMPLES,MEME_CLIPS,FINAL_SAMPLE_IDS} from '../dist/typing-audio.mjs';
 import {loadData} from '../dist/core.mjs';
 import {parseBackup,backupData,ensureLearning} from '../dist/learning.mjs';
 import {readFile} from 'node:fs/promises';
@@ -17,16 +17,19 @@ for(let i=0;i<80;i++)audio.key('f');
 const timers=instance.nodes.filter(n=>n.type==='source'&&n.buffer?.duration===.14);
 assert.equal(timers.filter(n=>!n.stopped).length,8,'fast normal typing retains at most eight voice groups');
 audio.stop();assert(timers.every(n=>n.stopped),'pause stops all voices');
-setting.soundMode='gachi';audio.sync();audio.prime();audio.prime();await audio.preview('woo');assert.equal(fetches,Object.keys(MEME_SAMPLES).length,'samples decode once and concurrent priming shares loads');
+setting.soundMode='gachi';audio.sync();audio.prime();audio.prime();await audio.preview('tap');assert.equal(fetches,Object.keys(MEME_SAMPLES).length,'samples decode once and concurrent priming shares loads');
 for(let i=0;i<80;i++)audio.key('f');
 const memes=instance.nodes.filter(n=>n.buffer?.decoded);
 assert(memes.every(n=>n.stopAt<.34),'every typing fragment has a bounded short lifetime');
-const recent=memes.slice(1).map(n=>n.buffer);
-assert(recent.every((b,i)=>!i||b!==recent[i-1]),'shuffle never repeats the same recording consecutively');
-for(let i=0;i+KEY_SAMPLE_IDS.length<=recent.length;i+=KEY_SAMPLE_IDS.length)assert.equal(new Set(recent.slice(i,i+KEY_SAMPLE_IDS.length)).size,KEY_SAMPLE_IDS.length,'each full shuffle visits every clip');
+const tapBuffer=memes[0].buffer;
+assert(memes.every(n=>n.buffer===tapBuffer),'typing plays only the short vocal sound, never a final phrase');
+assert(memes.every(n=>n.stopAt<.115),'vocal keys decay in about 100 milliseconds');
 assert(memes.every(n=>n.output.gain.events.some(e=>e.kind==='ramp'&&e.value===0&&e.at>0)),'all fragments ramp down to silence');
 assert(memes.slice(0,-1).every(n=>n.stops>=2),'new key crossfades the previous fragment');
-const exercise={};assert.equal(audio.finish(exercise),true);const finished=instance.nodes.filter(n=>n.buffer?.decoded).at(-1);assert(finished.startArgs[2]<=MEME_CLIPS.finish.seconds);const finishedCount=instance.nodes.length;assert.equal(audio.finish(exercise),false);assert.equal(instance.nodes.length,finishedCount,'finishing the same exercise cannot replay the final line');
+const finals=[];
+for(let i=0;i<15;i++){const exercise={};assert.equal(audio.finish(exercise),true);const finished=instance.nodes.filter(n=>n.buffer?.decoded).at(-1);finals.push(finished.buffer);assert.notEqual(finished.buffer,tapBuffer);assert(finished.startArgs[2]>.6&&finished.startArgs[2]<2);const count=instance.nodes.length;assert.equal(audio.finish(exercise),false);assert.equal(instance.nodes.length,count,'finishing the same exercise cannot replay the final line');}
+assert(finals.every((b,i)=>!i||b!==finals[i-1]),'final phrases never repeat consecutively');
+for(let i=0;i<finals.length;i+=FINAL_SAMPLE_IDS.length)assert.equal(new Set(finals.slice(i,i+FINAL_SAMPLE_IDS.length)).size,FINAL_SAMPLE_IDS.length);
 setting.soundVolume=0;audio.sync();assert(memes.every(n=>n.stopped));const count=instance.nodes.length;audio.key('f');assert.equal(instance.nodes.length,count,'zero volume is silent');assert.equal((await audio.preview()).ok,false);
 setting.soundVolume=35;setting.soundMode='off';audio.sync();assert.equal((await audio.preview()).ok,false);
 for(const e of [{key:'f',repeat:true},{key:'f',isComposing:true},{key:'v',metaKey:true},{key:'v',ctrlKey:true},{key:'Escape'},{key:'Shift'},{key:'F1'}])assert.equal(typingSoundKey(e),null);
@@ -38,4 +41,4 @@ const legacy=ensureLearning(loadData({getItem:()=>null}));delete legacy.settings
 const migrated=parseBackup(backupData(legacy));assert.equal(migrated.settings.soundMode,'off');assert.equal(migrated.settings.soundVolume,35);
 for(const [key,value] of [['soundVolume',101],['soundVolume',-1],['soundMode','unknown'],['keyboardSwitch','unknown']]){const copy=structuredClone(migrated);copy.settings[key]=value;assert.throws(()=>parseBackup(backupData(copy)));}
 for(const [id,path] of Object.entries(MEME_SAMPLES)){const file=await readFile(new URL(path.replace('./','../dist/'),import.meta.url));assert.equal(file.subarray(0,4).toString(),'RIFF');assert.equal(file.subarray(8,12).toString(),'WAVE');assert.equal(file.readUInt16LE(22),1,'compact mono asset');assert.equal(file.readUInt16LE(34),16);const duration=file.readUInt32LE(40)/file.readUInt32LE(28);assert(Math.abs(duration-MEME_CLIPS[id].seconds)<.001,'file itself is trimmed to advertised duration');assert.equal(file.readInt16LE(44),0,'soft attack starts at silence');assert.equal(file.readInt16LE(file.length-2),0,'soft end avoids clicks');}
-console.log('Passed: short shuffled clips without repeats, fade-out and replacement crossfade, one final per exercise, lazy/off/mute, switch profiles, bounded voices, shared loading, cancellation, failed loads, physical-key filtering, backups and trimmed WAV assets.');
+console.log('Passed: neutral 100 ms vocal keys, shuffled complete final phrases without repeats, fade-out and replacement crossfade, one final per exercise, lazy/off/mute, switch profiles, bounded voices, shared loading, cancellation, failed loads, physical-key filtering, backups and trimmed WAV assets.');

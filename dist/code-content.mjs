@@ -51,10 +51,14 @@ export const CODE_TRACKS={
   ['Экранирование','\\ \\n \\t | || \\ | ||']
  ]}
 };
-export function codeExercise(track,index=0){
+export const CODE_VOLUMES={short:{name:'Короткий',count:1},medium:{name:'Средний',count:3},long:{name:'Длинный',count:6}};
+export function codeExercise(track,index=0,volume='short'){
  const item=CODE_TRACKS[track];if(!item)throw new Error('Неизвестный набор кода.');
+ if(!CODE_VOLUMES[volume])throw new Error('Неизвестный объём кода.');
  const selected=((index%item.items.length)+item.items.length)%item.items.length;
- const [title,text]=item.items[selected];return{track,title,text,file:item.file,index:selected,words:text.split(' ')};
+ const parts=Array.from({length:CODE_VOLUMES[volume].count},(_,i)=>item.items[(selected+i)%item.items.length]);
+ const title=parts.length===1?parts[0][0]:`${item.name} · ${parts.length} ${parts.length===6?'примеров':'примера'}`,text=parts.map(([,text])=>text).join(' ');
+ return{track,title,text,file:item.file,index:selected,volume,parts:parts.length,words:text.split(' ')};
 }
 const keywords=new Set('const let var function return if else for of in async await import export from type interface string number boolean public private class new and or not def True False None git npm curl rg'.split(' '));
 export function codeTokenType(token){

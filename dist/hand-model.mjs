@@ -14,16 +14,18 @@ export function keyPoint(key){
 export function handOffset(key){
  if(!key||key.finger>7)return[0,0];
  const base=BASES[key.finger],tip=keyPoint(key),dx=tip[0]-base[0],dy=tip[1]-base[1],sideways=Math.sign(dx)*Math.max(0,Math.abs(dx)-Math.abs(dy)*Math.tan(.45)),remainingX=dx-sideways,distance=Math.hypot(remainingX,dy),reach=LENGTHS[key.finger].reduce((a,b)=>a+b)*.9;
- const travel=Math.max(0,distance-reach);return distance?[sideways+remainingX/distance*travel,dy/distance*travel]:[0,0];
+ // A close bottom-row key needs a little wrist retreat, not a folded-back fingertip.
+ const minimum=LENGTHS[key.finger].reduce((a,b)=>a+b)*.68;
+ const travel=distance<minimum?distance-minimum:Math.max(0,distance-reach);return distance?[sideways+remainingX/distance*travel,dy/distance*travel]:[0,0];
 }
 // Fixed-length 3D phalanges. MCP sets pitch; PIP and DIP curl towards the key.
 // Flexion shortens the projection; the skin never stretches sideways.
-export function jointPose(index,target){
+export function jointPose(index,target,tipHeight=0){
  const base=BASES[index],lengths=LENGTHS[index],dx=target[0]-base[0],dy=target[1]-base[1],yaw=Math.atan2(dy,dx),distance=Math.hypot(dx,dy);
- const sum=lengths.reduce((a,b)=>a+b),radius=Math.min(sum*.995,Math.hypot(distance,ROOT_HEIGHT));
+ const drop=ROOT_HEIGHT-tipHeight,sum=lengths.reduce((a,b)=>a+b),radius=Math.min(sum*.995,Math.hypot(distance,drop));
  const vector=q=>{const angles=[0,-q,-1.65*q];return[lengths.reduce((v,l,i)=>v+l*Math.cos(angles[i]),0),lengths.reduce((v,l,i)=>v+l*Math.sin(angles[i]),0)];};
  let low=0,high=1.65;for(let n=0;n<32;n++){const q=(low+high)/2,v=vector(q);if(Math.hypot(...v)>radius)low=q;else high=q;}
- const flex=(low+high)/2,v=vector(flex),pitch=Math.atan2(-ROOT_HEIGHT,Math.max(1,distance))-Math.atan2(v[1],v[0]);
+ const flex=(low+high)/2,v=vector(flex),pitch=Math.atan2(-drop,Math.max(1,distance))-Math.atan2(v[1],v[0]);
  return{yaw,pitch,flex};
 }
 export function posePoints(index,pose){
@@ -32,6 +34,13 @@ export function posePoints(index,pose){
  return points;
 }
 export const solveFinger=(index,target)=>posePoints(index,jointPose(index,target));
+// Slightly oblique projection reveals the arch; contact at z=0 stays on the key.
+export const projectHandPoints=points=>points.map(([x,y,z])=>[x,y+z*.38,z]);
+export function strokePhase(elapsed){
+ const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+ return{amount:elapsed<45?smooth(elapsed/45):elapsed<=100?1:1-smooth((elapsed-100)/140),contact:elapsed>=45&&elapsed<=100,done:elapsed>=240};
+}
+export function interpolatePose(from,to,amount){const yaw=Math.atan2(Math.sin(to.yaw-from.yaw),Math.cos(to.yaw-from.yaw));return{yaw:from.yaw+yaw*amount,pitch:from.pitch+(to.pitch-from.pitch)*amount,flex:from.flex+(to.flex-from.flex)*amount};}
 export function fingerOutline(points,index){
  const widths=index===0||index===7?[16,15,13,11.5]:index===8?[22,18,14]:[20,18,15.5,13];
  const before=points[0],tip=points.at(-1),dx=tip[0]-before[0],dy=tip[1]-before[1],length=Math.hypot(dx,dy)||1,nx=-dy/length,ny=dx/length,p=a=>a.map(n=>n.toFixed(2)).join(' ');
@@ -39,7 +48,8 @@ export function fingerOutline(points,index){
  const a=side(1),b=side(-1),mid=(x,y)=>[(x[0]+y[0])/2,(x[1]+y[1])/2];
  const flank=arr=>arr.slice(1,-1).map((point,i)=>`Q${p(point)} ${p(mid(point,arr[i+2]))}`).join(' ')+` L${p(arr.at(-1))}`;
  const cap=[tip[0]+dx/length*widths.at(-1),tip[1]+dy/length*widths.at(-1)];
- return`M${p(a[0])} ${flank(a)} Q${p(cap)} ${p(b.at(-1))} ${flank(b.slice().reverse())} Z`;
+ const rootCap=[before[0]-dx/length*widths[0]*.6,before[1]-dy/length*widths[0]*.6];
+ return`M${p(a[0])} ${flank(a)} Q${p(cap)} ${p(b.at(-1))} ${flank(b.slice().reverse())} Q${p(rootCap)} ${p(a[0])} Z`;
 }
 export function crease(points,index,joint){
  const c=points[joint],before=points[joint-1],after=points[joint+1],dx=after[0]-before[0],dy=after[1]-before[1],length=Math.hypot(dx,dy)||1,w=index===0||index===7?9:12,nx=-dy/length,ny=dx/length,p=a=>a.map(n=>n.toFixed(2)).join(' ');

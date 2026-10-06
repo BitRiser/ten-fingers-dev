@@ -612,3 +612,87 @@ dialog.onboarding-dialog{width:min(750px,calc(100vw - 28px));padding:28px 32px;m
 .meme-sample-button small{font-size:8px;color:var(--muted);white-space:nowrap}
 @media(max-width:560px){.meme-sample-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.sound-settings-heading h3{font-size:20px}.sound-modes{gap:7px}.sound-mode-card{padding:12px 9px}.sound-mode-card strong{font-size:10px}.sound-mode-card small{font-size:9px}.sound-mode-mark{font-size:22px}.switch-profiles{grid-template-columns:1fr}.sound-subheading{align-items:flex-start;flex-wrap:wrap;gap:6px}.switch-profile{padding:13px}.switch-card-copy>span{font-size:10px}.keyboard-sound-button{font-size:9px;gap:8px}.sound-mode-value{padding-left:8px}.sound-preview-actions{gap:8px}}
+
+/* Keep the typing plane sharp: filters never touch its ancestors. */
+body.typing-focus :is(#header,.sidebar,footer,#content>:not(.exercise),.editor-toolbar,.editor-status,.stage-meta,.line-gutter,.exercise-actions,.input-message,.keyboard-model,.keyboard-sound-toolbar,.finger-hint,.hand-caption,#toast),
+body.typing-focus :is(#header,.sidebar,.control-panel):hover{filter:blur(16px);opacity:.025;transition:filter .16s,opacity .16s}
+body.typing-focus .editor-surface{background:transparent;border-color:transparent;box-shadow:none}
+body.typing-focus .words,body.typing-focus .keyboard-svg{filter:none;opacity:1}
+.workspace-path,.workspace-tabs,.nav-number,.brand-copy small,.nav-section{display:none}
+#header{min-height:50px;margin-bottom:26px;padding-bottom:0;grid-template-rows:auto}
+.stage{min-height:150px}
+.keyboard-wrap{max-width:610px;margin-top:18px}
+.keyboard-model{display:none}
+.keyboard-sound-toolbar{margin-bottom:10px}
+.welcome{padding:25px 0 32px;max-width:760px}
+.welcome h2{font-size:clamp(30px,4vw,51px);line-height:1.2;font-weight:500;letter-spacing:-.04em;margin:14px 0 18px;color:var(--text)}
+.welcome>p{max-width:590px;font-size:14px;line-height:1.85;color:var(--muted)}
+.welcome-actions{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0 15px}
+.welcome-actions button{min-height:44px;font-size:12px}
+.welcome-language{font-size:10px;color:var(--muted)}
+.start-paths{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:0 0 24px}
+.start-paths>button{text-align:left;padding:23px;border:1px solid var(--line);border-radius:10px;background:var(--panel);display:flex;flex-direction:column;align-items:flex-start;gap:11px;transition:border-color .15s,background .15s}
+.start-paths>button:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 5%,var(--panel))}
+.path-number{font-size:11px;color:var(--accent)}
+.start-paths h3{font-size:19px;color:var(--text);font-weight:500}
+.start-paths p{font-size:11px;color:var(--muted);line-height:1.9;flex:1}
+.start-paths b{font-size:10px;color:var(--accent);font-weight:500;margin-top:7px}
+.welcome-how{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 0;margin-bottom:20px;font-size:10px;color:var(--muted)}
+.welcome-how strong{color:var(--text);font-weight:500}.welcome-how i{font-style:normal;opacity:.5}
+.home-personal{border-top:1px solid var(--line);padding-top:20px}
+.home-personal>summary,.practice-details>summary{cursor:pointer;color:var(--muted);font-size:11px;min-height:30px}
+.simple-practice{display:block;min-height:0}
+.practice-intro{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.practice-intro h2{font-size:23px;font-weight:500;margin:0 0 6px;color:var(--text)}
+.practice-intro p{font-size:11px;line-height:1.8;color:var(--muted)}
+.practice-essentials{display:flex;align-items:center;gap:24px;margin:10px 0;font-size:11px;color:var(--muted)}
+.practice-essentials b{font-weight:500;color:var(--text);margin-left:6px}.practice-essentials button{margin-left:auto}
+.practice-details .letter-grid{max-width:none;grid-template-columns:repeat(auto-fill,minmax(32px,1fr));margin:14px 0}
+.practice-details>p{font-size:10px;color:var(--muted);line-height:1.9}
+.simple-practice .focus-letter{padding:0;border:0}.simple-practice .focus-letter span{font-size:9px}
+.code-volume-bar{display:flex;gap:15px;align-items:center;flex-wrap:wrap;margin:16px 0 22px;font-size:10px;color:var(--muted)}
+.code-volume-bar [role=group]{display:flex;gap:5px}.code-volume-bar button{padding:9px 13px;min-height:38px;border:1px solid var(--line);border-radius:5px}
+.code-volume-bar button.selected{background:color-mix(in srgb,var(--accent) 10%,var(--panel));border-color:var(--accent);color:var(--accent)}
+.code-volume-bar small{margin-left:auto;white-space:nowrap}
+.meme-sample-buttons>.sound-subheading{grid-column:1/-1;margin:0 0 2px;color:var(--text)}
+.journey-heading{display:flex;align-items:center;justify-content:space-between;gap:28px;margin:10px 0 28px}
+.journey-heading h2{font-size:27px;margin:9px 0 10px;font-weight:500;letter-spacing:-.025em;color:var(--text)}
+.journey-heading p:last-child{font-size:12px;line-height:1.85;color:var(--muted);max-width:510px}
+.journey-heading button{white-space:nowrap;min-height:44px}
+.journey-progress-label{display:flex;justify-content:space-between;gap:15px;font-size:11px;color:var(--muted);margin-bottom:10px}
+.journey-progress-label strong{font-weight:500;color:var(--accent)}
+.journey-progress{height:8px;background:var(--line);border-radius:10px;overflow:hidden;margin-bottom:28px}
+.journey-progress i{display:block;height:100%;background:var(--accent);border-radius:10px;transition:width .35s}
+.journey-chapters{display:grid;gap:13px;max-width:800px;margin:auto}
+.journey-chapter{border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden}
+.journey-chapter.current-chapter{border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
+.journey-chapter>summary{list-style:none;display:flex;align-items:center;gap:15px;padding:20px;cursor:pointer}
+.journey-chapter>summary::-webkit-details-marker{display:none}
+.chapter-marker{width:35px;height:35px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);font-size:12px;color:var(--accent)}
+.journey-chapter summary strong{font-size:13px;font-weight:500;color:var(--text)}
+.journey-chapter summary small{display:block;color:var(--muted);font-size:10px;margin-top:4px}.chapter-score{margin-left:auto;font-size:11px;color:var(--muted)}
+.chapter-route{padding:10px 25px 12px;border-top:1px solid var(--line)}
+.route-map{height:var(--route-height);position:relative;max-width:580px;margin:auto}
+.route-map>svg{width:100%;height:100%;position:absolute;inset:0;overflow:visible}
+.route-edge{fill:none;stroke:var(--line);stroke-width:3;stroke-dasharray:4 6;stroke-linecap:round}.route-edge.traveled{stroke:var(--accent);stroke-dasharray:none}
+.route-stop{position:absolute;transform:translateX(-50%);width:110px;text-align:center}
+.route-node{position:relative;display:grid;place-items:center;width:49px;height:49px;margin:auto;border:2px solid var(--line);border-radius:50%;background:var(--panel2);font-size:16px}
+.route-node.current{background:var(--accent);border-color:var(--accent);color:var(--bg);box-shadow:0 0 0 7px color-mix(in srgb,var(--accent) 11%,transparent)}
+.route-node.done{color:var(--success);border-color:var(--success);background:var(--panel)}
+.route-node.locked{opacity:.45;cursor:default}.route-node:not(:disabled):hover{transform:translateY(-2px)}
+.route-stop>small{display:block;font-size:9px;line-height:1.5;color:var(--muted);margin-top:9px;min-height:27px}
+.route-stop.current>small{color:var(--text)}
+.route-player{position:absolute;top:-22px;font-style:normal;font-size:18px;animation:route-arrive .45s ease-out}
+.route-3{display:none}.journey-note{font-size:10px;line-height:1.9;color:var(--muted);max-width:800px;margin:22px auto}
+.mac-keyboard .hand-palm,.mac-keyboard .finger-skin,.mac-keyboard .thumb-skin{fill:url(#handSkin)}
+.mac-keyboard .hands-layer{opacity:.58}
+.mac-keyboard .thumb{opacity:1}
+.mac-keyboard .finger-edge{stroke:var(--text);stroke-opacity:.15;stroke-width:.8}
+.mac-keyboard .active-finger .finger-edge{stroke-width:1;stroke-opacity:.65}
+.mac-keyboard .joint-crease{stroke-opacity:.24;stroke-width:.8}
+.mac-keyboard .dorsal-tendon{stroke:var(--bg);stroke-opacity:.13;stroke-width:1;fill:none}
+.mac-keyboard .fingernail{fill:color-mix(in srgb,var(--hand-fill) 65%,white);fill-opacity:.7;stroke:var(--text);stroke-opacity:.35;stroke-width:.7}
+.mac-keyboard .joint-pad{fill-opacity:.035}
+@keyframes route-arrive{from{transform:translateY(-10px);opacity:0}to{transform:none;opacity:1}}
+@media(max-width:720px){.start-paths{grid-template-columns:1fr;gap:10px}.start-paths>button{padding:18px;gap:7px}.start-paths h3{font-size:18px}.welcome-how{gap:10px}.practice-intro{align-items:flex-start}.practice-intro h2{font-size:20px}.practice-intro p{font-size:10px}.practice-essentials{gap:14px;font-size:10px}.journey-heading{flex-wrap:wrap;gap:16px}.journey-heading h2{font-size:24px}.journey-heading button{width:100%}.route-4{display:none}.route-3{display:block}.chapter-route{padding:10px 10px 14px}.route-stop{width:92px}.route-stop>small{font-size:8px}.journey-chapter>summary{padding:16px}.journey-chapter summary strong{font-size:11px}.code-volume-bar{gap:10px}}
+@media(prefers-reduced-motion:reduce){body.typing-focus :is(#header,.sidebar,footer,#content>:not(.exercise),.editor-toolbar,.editor-status,.stage-meta,.line-gutter,.exercise-actions,.input-message,.keyboard-model,.keyboard-sound-toolbar,.finger-hint,.hand-caption,#toast){transition:none}.route-player{animation:none}.journey-progress i{transition:none}.route-node:not(:disabled):hover{transform:none}}

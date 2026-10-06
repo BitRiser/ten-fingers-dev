@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {lessonRoute,lessonMapMarkup} from '../dist/lesson-map.mjs';
+const lessons={};let route=lessonRoute(lessons,'qwerty');
+assert.equal(route.total,81);assert.equal(route.completed,0);assert.equal(route.next.number,1);
+assert.equal(route.groups.flatMap(g=>g.steps).filter(s=>s.status==='current').length,1);
+lessons['qwerty:0:0']={passed:false,streak:1};assert.equal(lessonRoute(lessons,'qwerty').next.number,1,'one successful attempt still repeats the stage');
+lessons['qwerty:0:0']={passed:true};route=lessonRoute(lessons,'qwerty');assert.equal(route.next.number,2);assert.equal(route.completed,1);
+lessons['qwerty:0:3']={passed:true};route=lessonRoute(lessons,'qwerty');assert.equal(route.next.number,2);assert.equal(route.groups[0].steps[3].status,'done','previously passed later stages remain available');
+assert.equal(lessonRoute(lessons,'йцукен').completed,0,'layout progress stays isolated');
+const markup=lessonMapMarkup(lessons,'qwerty');assert(markup.includes('role="progressbar"'));assert(markup.includes('aria-valuenow="2"'));assert(markup.includes('aria-current="step"'));assert(markup.includes('disabled'));
+for(const group of route.groups)for(const step of group.steps)lessons[`qwerty:${step.group}:${step.step}`]={passed:true};
+route=lessonRoute(lessons,'qwerty');assert.equal(route.percent,100);assert.equal(route.next,null);assert.equal(route.completed,81);
+console.log('Passed: 81-stage lesson map, next/retry/locked states, saved progress, layout isolation and course completion.');

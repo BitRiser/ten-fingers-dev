@@ -33,11 +33,14 @@ assert.ok([...alphabet].every(c=>correct.keys[c].correct>=2&&correct.keys[c].avg
 const withSpeed=(cpm,changes={})=>({...correct,sessionId:crypto.randomUUID(),cpm,...changes});
 let p=createProgress();savePractice(p,withSpeed(174.999),'ru',goal);assert.ok(Object.values(p.letters).every(k=>k.samples===0));
 savePractice(p,withSpeed(175),'ru',goal);assert.ok(Object.values(p.letters).every(k=>k.samples===1),'Exactly 70% qualifies');
-for(let i=0;i<4;i++)savePractice(p,withSpeed(175),'ru',goal);
+for(let i=0;i<2;i++)savePractice(p,withSpeed(175),'ru',goal);
 assert.equal(p.unlocked,5);assert.ok(Object.values(p.letters).every(k=>confidence(k,goal)===70),'70% builds samples but cannot open a letter');
 savePractice(p,withSpeed(249.999),'ru',goal);assert.equal(p.unlocked,5);assert.ok(Object.values(p.letters).every(k=>confidence(k,goal)===99),'Rounding cannot cross the full goal');
 assert.equal(savePractice(p,withSpeed(250),'ru',goal),LANGUAGES.ru.alphabet[5]);
 assert.equal(p.unlocked,6);
+// Three full-quality attempts open the next letter; two cannot.
+const three=createProgress();for(let i=0;i<2;i++)savePractice(three,withSpeed(250),'ru',goal);assert.equal(three.unlocked,5);assert.ok(Object.values(three.letters).every(k=>confidence(k,goal)===0));
+assert.equal(savePractice(three,withSpeed(250),'ru',goal),LANGUAGES.ru.alphabet[5]);assert.equal(three.unlocked,6);
 // Very fast transitions and good final text cannot compensate for poor input accuracy.
 for(const changes of [{accuracy:94.999},{firstAttemptAccuracy:94.999},{incorrectWords:1,correctWords:5},{finalAccuracy:99.99}]){
  const q=createProgress();for(let i=0;i<8;i++)savePractice(q,withSpeed(3000,changes),'ru',goal);
