@@ -1,4 +1,4 @@
-import {LANGUAGES,LAYOUTS,findKey} from './data.mjs';
+import {LANGUAGES,LAYOUTS,findKey,DEFAULT_SETTINGS,availableLayouts} from './data.mjs';
 import {createProgress,generateWords} from './core.mjs';
 
 export const METRICS_VERSION=3;
@@ -54,6 +54,7 @@ export function normalizeText(raw){return String(raw).normalize('NFC').replace(/
 export function validateText(raw,layout){let text=normalizeText(raw);return{text,words:text?text.split(' '):[],unsupported:[...new Set([...text].filter(c=>!findKey(c,layout)))],changed:text!==raw}}
 
 export function mergeSkills(model,result,context,now=Date.now()){
+ if(result.sessionId){let existing=model.activities.find(r=>r.sessionId===result.sessionId);if(existing)return existing;}
  let sample=(target,source)=>{target.observations=(target.observations||0)+(source.observations||source.correct+source.errors||0);target.errors=(target.errors||0)+source.errors;target.latencies=[...(target.latencies||[]),...(source.latencies||[])].slice(-80);target.lastAt=now};
  for(let [key,value] of Object.entries(result.keys||{})){let target=model.keys[key]??={};sample(target,value)}
  for(let [key,value] of Object.entries(result.pairs||{})){let target=model.pairs[key]??={};sample(target,value)}
@@ -78,9 +79,28 @@ export function recommendations(model,lang){
 export function chooseTarget(model,lang){let latest=new Map();for(let r of model.diagnostics)latest.set(r.contentId,r);let contextual=[...latest.values()].filter(r=>r.accuracy<95&&r.errors>=2&&r.correct>=20).sort((a,b)=>a.accuracy-b.accuracy)[0];if(contextual){let key=contextual.contentId?.endsWith('-2')?'numbers':contextual.contentId?.endsWith('-1')?'shift':'letters';if(model.lastTarget!=='text:'+key)return{type:'text',key,reason:`В диагностике «${key==='numbers'?'цифры и знаки':key==='shift'?'регистр':'буквы'}» точность была ${Math.round(contextual.accuracy)}%. Потренируем эту задачу на другом фрагменте.`}}let targets=recommendations(model,lang),target=targets.find(t=>t.type+':'+t.key!==model.lastTarget)||targets[0];return target||{type:'text',key:'work',reason:'Пока мало повторных наблюдений. Наберём короткий рабочий текст и продолжим собирать данные.'}}
 export function targetWords(lang,target,count=20,letters=LANGUAGES[lang].alphabet,random=Math.random){
  if(target.type==='text')return contentText(lang,target.key||'work').split(' ');
- let allowed=new Set(letters),pool=LANGUAGES[lang].words.filter(w=>w.includes(target.key)&&[...w].every(c=>allowed.has(c))),filler=generateWords({lang,letters,count,random});
- return filler.map((w,i)=>i%2===0?pool.length?pool[Math.floor(random()*pool.length)]:target.key:w);
+ return generateWords({lang,letters,focus:target.key,count,random,focusFraction:.5});
 }
 export function controlSummary(model){let usable=model.checks.filter(r=>r.comparable!==false&&!r.hints&&r.metricsVersion===METRICS_VERSION);return{count:usable.length,baseline:usable[0],latest:usable.at(-1),range:usable.length>=3?[Math.min(...usable.slice(-3).map(r=>r.cpm)),Math.max(...usable.slice(-3).map(r=>r.cpm))]:null}}
 export function backupData(data){return JSON.stringify({format:'ten-fingers-backup',version:1,exportedAt:new Date().toISOString(),data},null,2)}
-export function parseBackup(raw){let backup=JSON.parse(raw);if(backup.format!=='ten-fingers-backup'||backup.version!==1||backup.data?.version!==2||!backup.data.settings||!backup.data.progress)throw new Error('Это не резервная копия Десяти пальцев.');if(raw.length>15000000)throw new Error('Файл слишком большой.');let d=backup.data;if(!LANGUAGES[d.settings.language]||!LAYOUTS[d.settings.layouts?.[d.settings.language]])throw new Error('Некорректные настройки в файле.');for(let m of Object.values(d.learning||{})){if(!Array.isArray(m.activities)||!Array.isArray(m.checks)||!m.keys||!m.pairs)throw new Error('Некорректный профиль в файле.')}return ensureLearning(d)}
+export function parseBackup(raw){
+ if(typeof raw!=='string'||raw.length>15000000)throw new Error('Файл слишком большой.');
+ const backup=JSON.parse(raw,(key,value)=>{if(['__proto__','constructor','prototype'].includes(key))throw new Error('Недопустимые поля в копии.');return value;});
+ if(backup.format!=='ten-fingers-backup'||backup.version!==1||backup.data?.version!==2)throw new Error('Это не резервная копия Десяти пальцев.');
+ const d=backup.data,object=x=>!!x&&typeof x==='object'&&!Array.isArray(x),fail=()=>{throw new Error('В копии повреждены настройки, история или сохранённые тексты.');};
+ if(!object(d.settings)||!object(d.progress)||!LANGUAGES[d.settings.language])fail();
+ const settings={...DEFAULT_SETTINGS,...d.settings,layouts:{...DEFAULT_SETTINGS.layouts,...d.settings.layouts}};
+ for(const lang of Object.keys(LANGUAGES))if(!availableLayouts(lang).includes(settings.layouts[lang]))fail();
+ const enums={theme:['dark','light','warm'],unit:['cpm','wpm','cps'],dailyType:['sessions','time'],wordsView:['rows','tape'],caretStyle:['line','block','underline'],caretSpeed:['off','slow','medium','fast'],testMode:['time','words','quote'],hintMode:['always','request','off']};
+ for(const [key,values] of Object.entries(enums))if(!values.includes(settings[key]))fail();
+ for(const [key,value] of Object.entries(DEFAULT_SETTINGS))if(typeof value==='boolean'&&typeof settings[key]!=='boolean')fail();
+ const bounds={speedGoal:[1,3000],dailyGoal:[1,200],dailyMinutes:[1,300],tapeMargin:[0,80],fontSize:[18,48],testTime:[1,14400],testWords:[1,10000],letterSpacing:[0,5]};
+ for(const [key,[min,max]] of Object.entries(bounds))if(!Number.isFinite(settings[key])||settings[key]<min||settings[key]>max)fail();
+ const records=items=>{if(!Array.isArray(items)||items.length>20000)fail();for(const r of items){if(!object(r))fail();for(const key of ['cpm','duration','accuracy','at','correct','errors'])if(r[key]!==undefined&&(!Number.isFinite(r[key])||r[key]<0))fail();if(r.accuracy>100)fail();}};
+ const progress=(p,lang)=>{if(!object(p)||!Number.isInteger(p.unlocked)||p.unlocked<1||p.unlocked>LANGUAGES[lang].alphabet.length||!object(p.letters)||!object(p.lessons))fail();records(p.history);records(p.tests);if(p.lessonHistory!==undefined)records(p.lessonHistory);};
+ for(const lang of Object.keys(LANGUAGES))if(d.progress[lang])progress(d.progress[lang],lang);
+ if(d.layoutProgress!==undefined){if(!object(d.layoutProgress))fail();for(const [id,p] of Object.entries(d.layoutProgress)){const [lang,layout]=id.split(':');if(!LANGUAGES[lang]||!availableLayouts(lang).includes(layout))fail();progress(p,lang);}}
+ if(d.learning!==undefined){if(!object(d.learning))fail();for(const [id,m] of Object.entries(d.learning)){const [lang,layout]=id.split(':');if(!LANGUAGES[lang]||!availableLayouts(lang).includes(layout)||!object(m)||!object(m.keys)||!object(m.pairs))fail();records(m.activities);records(m.checks);records(m.diagnostics||[]);if(!Array.isArray(m.seenChecks)||m.seenChecks.some(x=>typeof x!=='string'))fail();for(const [key,value] of [...Object.entries(m.keys),...Object.entries(m.pairs)]){if(!key||key.length>2||!object(value))fail();for(const field of ['observations','errors'])if(value[field]!==undefined&&(!Number.isFinite(value[field])||value[field]<0))fail();if(value.latencies!==undefined&&(!Array.isArray(value.latencies)||value.latencies.length>500||value.latencies.some(x=>!Number.isFinite(x)||x<0||x>2000)))fail();}}}
+ for(const items of [d.library||[],d.trash||[]]){if(!Array.isArray(items)||items.length>1000)fail();for(const t of items)if(!object(t)||typeof t.id!=='string'||t.id.length>120||typeof t.title!=='string'||t.title.length>80||typeof t.text!=='string'||t.text.length>5000||!LANGUAGES[t.lang])fail();}
+ d.settings=settings;return ensureLearning(d);
+}

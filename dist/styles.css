@@ -15,3 +15,15 @@
 .articulated-keyboard .hands-layer{opacity:.38}.articulated-keyboard .hand-palm,.articulated-keyboard .finger-skin,.articulated-keyboard .thumb-skin{fill:var(--hand-fill);stroke:none}.finger-edge{fill:none;stroke:var(--text);stroke-opacity:.25;stroke-width:1}.active-finger .finger-edge{stroke:var(--accent);stroke-opacity:1;stroke-width:2}.finger-press .finger-edge{stroke:var(--success)}.articulated-keyboard .joint-crease,.articulated-keyboard .palm-crease{stroke:var(--bg);stroke-opacity:.4}.articulated-keyboard .fingernail{fill:var(--bg);fill-opacity:.24;stroke:var(--bg);stroke-opacity:.25}
 
 body:not([data-theme]),body[data-theme=dark]{--muted:#9aa7b7}body[data-theme=light]{--muted:#617085;--accent:#1967bf}body[data-theme=warm]{--muted:#756650;--accent:#855d29}footer,.hand-caption{opacity:.85}.skill-cell.unknown{opacity:1;color:var(--muted)}.letter.closed{opacity:1;color:var(--muted)}
+
+/* Reference geometry stays fixed while a word is entered or corrected. */
+.words,.words.tape{white-space:normal;max-height:none;min-height:0;overflow:hidden;scroll-behavior:auto;transition:none;line-height:1.9}
+.word{position:relative;max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.9;vertical-align:top}
+.word-extras{position:absolute;right:0;top:-.65em;max-width:12em;overflow:hidden;white-space:nowrap;font-size:.5em;line-height:1;color:var(--error);background:var(--bg);border-radius:3px;z-index:2;pointer-events:none}
+.stage.unfocused .words{filter:none;opacity:.65}
+.material-note{font-size:11px;color:var(--muted);line-height:1.8;margin:0 0 24px}
+.result-stays{font-size:11px;color:var(--muted);text-align:center;line-height:1.8;margin-top:18px}
+.save-status{margin-top:18px;padding:14px;border:1px solid var(--error);border-radius:8px;color:var(--text);font-size:12px;line-height:1.8}
+
+#caretOverlay{transition:none}
+.typing-input{top:24px;bottom:auto}.typing-input.visible{top:auto}
