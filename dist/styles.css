@@ -63,3 +63,5 @@ body:not([data-theme]),body[data-theme=dark]{--muted:#9aa7b7}body[data-theme=lig
 .mac-keyboard.no-hands .keyboard-svg{margin-bottom:-32%}
 .mac-keyboard.no-hands .finger-hint{margin-top:4px}
 @media(max-width:560px){.keyboard-model{font-size:8px;margin-bottom:8px}.mac-keyboard .finger-hint{margin-top:-5px}}
+
+.sample-status{margin-top:20px;padding:16px 18px;border:1px solid var(--line);border-radius:10px;background:var(--panel);line-height:1.8}.sample-status strong{font-size:12px;font-weight:500}.sample-accepted strong{color:var(--success)}.sample-status p,.sample-status small{display:block;font-size:11px;color:var(--muted);margin-top:6px}.sample-status p:first-letter{text-transform:uppercase}

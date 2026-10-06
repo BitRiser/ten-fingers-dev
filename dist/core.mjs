@@ -1,9 +1,61 @@
 import {LANGUAGES,DEFAULT_SETTINGS,LESSON_GROUPS,mapPhysicalKeys} from './data.mjs';
 import {EXTRA_WORDS} from './vocabulary.mjs';
-export function createProgress(){return {unlocked:5,letters:{},history:[],lessons:{},lessonHistory:[],tests:[]}}
-export function confidence(key,goal){if(!key||key.samples<5)return 0;return Math.max(0,Math.min(100,Math.round(key.lastCPM/goal*(key.correct/Math.max(1,key.correct+key.errors))*100)))}
+export const PRACTICE_POLICY=2, SAMPLE_SPEED_RATIO=.7, SAMPLE_ACCURACY=95;
+export function createProgress(){return {unlocked:5,letters:{},history:[],lessons:{},lessonHistory:[],tests:[],samplePolicy:PRACTICE_POLICY}}
+export function confidence(key,goal){
+ if(!key||key.samples<5||!key.lastQualified||key.lastAccuracy<SAMPLE_ACCURACY||!Number.isFinite(goal)||goal<=0)return 0;
+ // Rounding 99.9% up to 100% must never open a letter below the actual goal.
+ return Math.max(0,Math.min(100,Math.floor(key.lastCPM/goal*100)));
+}
 export function targetLetter(progress,lang,goal){let active=[...LANGUAGES[lang].alphabet].slice(0,progress.unlocked);return active.find(c=>!progress.letters[c]||progress.letters[c].samples<5)||active.reduce((a,c)=>confidence(progress.letters[c],goal)<confidence(progress.letters[a],goal)?c:a,active[0])}
-export function savePractice(progress,result,lang,goal){if(result.sessionId&&progress.history.some(r=>r.sessionId===result.sessionId))return null;for(let [letter,data] of Object.entries(result.keys)){if(!LANGUAGES[lang].alphabet.includes(letter)||!data.avgMs)continue;let k=progress.letters[letter]||{samples:0,correct:0,errors:0,sumMs:0,topCPM:0,lastCPM:0};k.samples++;k.correct+=data.correct;k.errors+=data.errors;k.sumMs+=data.avgMs;k.lastCPM=60000/data.avgMs;k.topCPM=Math.max(k.topCPM,k.lastCPM);progress.letters[letter]=k}progress.history.push({...result,at:Date.now()});if(progress.history.length>1500)progress.history.shift();let alphabet=[...LANGUAGES[lang].alphabet],active=alphabet.slice(0,progress.unlocked);if(progress.unlocked<alphabet.length&&active.every(c=>(progress.letters[c]?.samples||0)>=5&&confidence(progress.letters[c],goal)>=100)){progress.unlocked++;return alphabet[progress.unlocked-1]}return null}
+export function assessPractice(result,goal,letters){
+ const floor=goal*SAMPLE_SPEED_RATIO,reasons=[],keys={},accepted=[];
+ if(!Number.isFinite(goal)||goal<=0||!Number.isFinite(result.cpm)||result.cpm<0||!Number.isFinite(result.duration)||result.duration<=0)reasons.push('measurement');
+ if(!Number.isFinite(result.accuracy)||result.accuracy<SAMPLE_ACCURACY||!Number.isFinite(result.firstAttemptAccuracy)||result.firstAttemptAccuracy<SAMPLE_ACCURACY)reasons.push('accuracy');
+ if(!Number.isInteger(result.wordCount)||result.wordCount<1||result.correctWords!==result.wordCount||result.incorrectWords!==0||result.finalAccuracy!==100)reasons.push('unfinished');
+ if(result.cpm<floor)reasons.push('speed');
+ for(const [letter,data] of Object.entries(result.keys||{})){
+  if(!letters.includes(letter))continue;
+  const correct=Number.isFinite(data.correct)?data.correct:0,errors=Number.isFinite(data.errors)?data.errors:0;
+  const accuracy=correct/Math.max(1,correct+errors)*100;
+  const measured=correct>=2&&Number.isFinite(data.avgMs)&&data.avgMs>=20&&data.avgMs<=2000&&Array.isArray(data.latencies)&&data.latencies.some(ms=>Number.isFinite(ms)&&ms>=20&&ms<=2000);
+  // A short, fast burst cannot hide slow typing, corrections, or skipped words.
+  const cpm=measured&&Number.isFinite(result.cpm)&&result.cpm>=0?Math.min(60000/data.avgMs,result.cpm):0;
+  const qualified=!reasons.length&&measured&&accuracy>=SAMPLE_ACCURACY&&cpm>=floor;
+  keys[letter]={cpm,accuracy:Math.min(accuracy,result.accuracy||0,result.firstAttemptAccuracy||0),measured,qualified,correct,errors};
+  if(qualified)accepted.push(letter);
+ }
+ return {policy:PRACTICE_POLICY,goal,floor,minAccuracy:SAMPLE_ACCURACY,reasons,accepted,keys};
+}
+function recordPracticeKeys(progress,assessment){
+ for(const [letter,sample] of Object.entries(assessment.keys)){
+  const key=progress.letters[letter]??={samples:0,correct:0,errors:0,topCPM:0,lastCPM:0,lastAccuracy:0,lastQualified:false};
+  key.correct+=sample.correct;key.errors+=sample.errors;
+  if(sample.measured||assessment.reasons.length||sample.accuracy<SAMPLE_ACCURACY){key.lastCPM=sample.cpm;key.lastAccuracy=sample.accuracy;key.lastQualified=sample.qualified;}
+  if(sample.qualified){key.samples++;key.topCPM=Math.max(key.topCPM,sample.cpm);}
+ }
+}
+export function ensurePracticeProgress(progress,lang,goal){
+ if(progress.samplePolicy===PRACTICE_POLICY)return progress;
+ // Reassess old samples; keep the user's history and already available letters.
+ progress.letters={};const seen=new Set(),letters=[...LANGUAGES[lang].alphabet].slice(0,progress.unlocked);
+ for(const result of progress.history){
+  if(result.sessionId&&seen.has(result.sessionId))continue;if(result.sessionId)seen.add(result.sessionId);
+  recordPracticeKeys(progress,assessPractice(result,result.practiceSample?.goal||goal,letters));
+ }
+ progress.samplePolicy=PRACTICE_POLICY;return progress;
+}
+export function savePractice(progress,result,lang,goal){
+ ensurePracticeProgress(progress,lang,goal);
+ if(result.sessionId&&progress.history.some(r=>r.sessionId===result.sessionId))return null;
+ const alphabet=[...LANGUAGES[lang].alphabet],active=alphabet.slice(0,progress.unlocked),assessment=assessPractice(result,goal,active);
+ const {keys,...summary}=assessment;result.practiceSample={...summary,observed:Object.keys(keys)};recordPracticeKeys(progress,assessment);
+ progress.history.push({...result,at:result.at??Date.now()});if(progress.history.length>1500)progress.history.shift();
+ if(!assessment.reasons.length&&assessment.accepted.length&&progress.unlocked<alphabet.length&&active.every(c=>confidence(progress.letters[c],goal)===100)){
+  progress.unlocked++;return alphabet[progress.unlocked-1];
+ }
+ return null;
+}
 export function dailyProgress(progress,now=new Date()){let start=new Date(now);start.setHours(0,0,0,0);let h=progress.history.filter(r=>r.at>=start.getTime());return{sessions:h.length,minutes:h.reduce((s,r)=>s+r.duration,0)/60000}}
 export function wordPool(lang,letters=LANGUAGES[lang].alphabet){
  const allowed=new Set(letters);
@@ -94,9 +146,10 @@ export class TypingSession{
  clearWord(){if(this.options.noWayBack||this.status==='finished')return;if(!this.current.length&&this.word>0)this.word--;if(this.current.length)this.setValue('');this.lastKey=this.now();this.lastCommitted=null}
  tick(){if(this.options.mode==='time'&&this.status==='running'&&this.duration>=this.options.seconds*1000)this.finish()}
  metrics(){
-  let counts={correct:0,incorrect:0,missed:0,extra:0},correctWords=0,incorrectWords=0,end=Math.min(this.word+1,this.words.length),expectedCount=0;
+  let counts={correct:0,incorrect:0,missed:0,extra:0},correctWords=0,incorrectWords=0,correctSpaces=0,end=Math.min(this.word+1,this.words.length),expectedCount=0;
   for(let w=0;w<end;w++){let full=w<this.word||(this.status==='finished'&&this.options.mode!=='time'),original=this.words[w],typed=this.values[w],alignment=alignText(original,typed);let remaining=original.length;if(!full){let last=alignment.ops.findLast(o=>o.type!=='missed');remaining=last?last.ref+(last.type==='extra'?0:1):0;alignment.missed=alignment.ops.filter(o=>o.type==='missed'&&o.ref<remaining).length}expectedCount+=remaining;for(let key of Object.keys(counts))counts[key]+=alignment[key];if(full||(this.status==='finished'&&typed===original)){if(typed===original)correctWords++;else incorrectWords++}}
-  let correct=counts.correct+Math.min(this.spaces,Math.max(0,end-1)),duration=this.duration,cpm=duration>0?correct/(duration/60000):0,total=this.correctRegistrations+this.errorRegistrations,attemptedFinal=counts.correct+counts.incorrect+counts.missed+counts.extra;
+  for(let w=0;w<end-1;w++)if(this.values[w]===this.words[w])correctSpaces++;
+  let correct=counts.correct+Math.min(this.spaces,correctSpaces),duration=this.duration,cpm=duration>0?correct/(duration/60000):0,total=this.correctRegistrations+this.errorRegistrations,attemptedFinal=counts.correct+counts.incorrect+counts.missed+counts.extra;
   return{...counts,correct,cpm,wpm:cpm/5,outputCPM:duration?this.values.slice(0,end).reduce((s,v)=>s+v.length,Math.min(this.spaces,Math.max(0,end-1)))/(duration/60000):0,accuracy:total?this.correctRegistrations/total*100:100,firstAttemptAccuracy:this.firstCount?this.firstCorrect/this.firstCount*100:100,finalAccuracy:attemptedFinal?counts.correct/attemptedFinal*100:100,duration,correctWords,incorrectWords,errors:this.errorRegistrations,errorPositions:this.positions.slice(0,end).reduce((s,p)=>s+p.filter(i=>i.error).length,0),corrections:this.corrections,deleted:this.deleted,correctionMs:this.correctionMs,hints:this.hints,pauses:this.pauses,comparable:this.comparable,metricsVersion:3};
  }
  finish(){
@@ -108,4 +161,4 @@ export class TypingSession{
  }
 }
 
-export function loadData(storage){let defaults={version:2,settings:structuredClone(DEFAULT_SETTINGS),progress:{ru:createProgress(),en:createProgress(),fr:createProgress()},legacyLessons:{},guideSeen:false};try{let value=JSON.parse(storage.getItem('ten-fingers-v2')||'null');if(value?.version===2){defaults.settings={...defaults.settings,...value.settings,layouts:{...defaults.settings.layouts,...value.settings?.layouts}};for(let l of ['ru','en','fr'])defaults.progress[l]={...createProgress(),...value.progress?.[l]};defaults.guideSeen=!!value.guideSeen;defaults.legacyLessons=value.legacyLessons||{};defaults.layoutProgress=value.layoutProgress||{};defaults.learning=value.learning||{};defaults.library=value.library||[]}else{defaults.legacyLessons=JSON.parse(storage.getItem('ten-fingers')||'{}')}}catch{}return defaults}
+export function loadData(storage){let defaults={version:2,settings:structuredClone(DEFAULT_SETTINGS),progress:{ru:createProgress(),en:createProgress(),fr:createProgress()},legacyLessons:{},guideSeen:false};try{let value=JSON.parse(storage.getItem('ten-fingers-v2')||'null');if(value?.version===2){defaults.settings={...defaults.settings,...value.settings,layouts:{...defaults.settings.layouts,...value.settings?.layouts}};for(let l of ['ru','en','fr'])defaults.progress[l]={...createProgress(),...value.progress?.[l],samplePolicy:value.progress?.[l]?.samplePolicy??0};defaults.guideSeen=!!value.guideSeen;defaults.legacyLessons=value.legacyLessons||{};defaults.layoutProgress=value.layoutProgress||{};defaults.learning=value.learning||{};defaults.library=value.library||[]}else{defaults.legacyLessons=JSON.parse(storage.getItem('ten-fingers')||'{}')}}catch{}return defaults}

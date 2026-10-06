@@ -1,5 +1,5 @@
 import {LANGUAGES,LAYOUTS,findKey,DEFAULT_SETTINGS,availableLayouts} from './data.mjs';
-import {createProgress,generateWords} from './core.mjs';
+import {createProgress,generateWords,ensurePracticeProgress} from './core.mjs';
 
 export const METRICS_VERSION=3;
 export const CONTENT_VERSION='2026-10-a';
@@ -8,6 +8,8 @@ export const profileId=(lang,layout)=>lang+':'+layout;
 export function ensureLearning(data){
  data.layoutProgress??={};data.learning??={};data.library??=[];
  for(let lang of Object.keys(LANGUAGES)){let id=profileId(lang,LANGUAGES[lang].layout);data.layoutProgress[id]??=data.progress[lang]||createProgress()}
+ for(const [id,progress] of Object.entries(data.layoutProgress)){const [lang]=id.split(':');if(LANGUAGES[lang])ensurePracticeProgress(progress,lang,data.settings.speedGoal);}
+ for(const [lang,progress] of Object.entries(data.progress))if(LANGUAGES[lang])ensurePracticeProgress(progress,lang,data.settings.speedGoal);
  return data;
 }
 export function progressFor(data,lang,layout){ensureLearning(data);return data.layoutProgress[profileId(lang,layout)]??=createProgress()}
@@ -97,7 +99,16 @@ export function parseBackup(raw){
  const bounds={speedGoal:[1,3000],dailyGoal:[1,200],dailyMinutes:[1,300],tapeMargin:[0,80],fontSize:[18,48],testTime:[1,14400],testWords:[1,10000],letterSpacing:[0,5]};
  for(const [key,[min,max]] of Object.entries(bounds))if(!Number.isFinite(settings[key])||settings[key]<min||settings[key]>max)fail();
  const records=items=>{if(!Array.isArray(items)||items.length>20000)fail();for(const r of items){if(!object(r))fail();for(const key of ['cpm','duration','accuracy','at','correct','errors'])if(r[key]!==undefined&&(!Number.isFinite(r[key])||r[key]<0))fail();if(r.accuracy>100)fail();}};
- const progress=(p,lang)=>{if(!object(p)||!Number.isInteger(p.unlocked)||p.unlocked<1||p.unlocked>LANGUAGES[lang].alphabet.length||!object(p.letters)||!object(p.lessons))fail();records(p.history);records(p.tests);if(p.lessonHistory!==undefined)records(p.lessonHistory);};
+ const progress=(p,lang)=>{
+  if(!object(p)||!Number.isInteger(p.unlocked)||p.unlocked<1||p.unlocked>LANGUAGES[lang].alphabet.length||!object(p.letters)||!object(p.lessons))fail();
+  if(p.samplePolicy!==undefined&&(!Number.isInteger(p.samplePolicy)||p.samplePolicy<0))fail();
+  for(const [letter,key] of Object.entries(p.letters)){
+   if(!LANGUAGES[lang].alphabet.includes(letter)||!object(key))fail();
+   for(const field of ['samples','correct','errors','lastCPM','topCPM','lastAccuracy'])if(key[field]!==undefined&&(!Number.isFinite(key[field])||key[field]<0))fail();
+   if(key.samples!==undefined&&!Number.isInteger(key.samples)||key.lastAccuracy>100||key.lastQualified!==undefined&&typeof key.lastQualified!=='boolean')fail();
+  }
+  records(p.history);records(p.tests);if(p.lessonHistory!==undefined)records(p.lessonHistory);
+ };
  for(const lang of Object.keys(LANGUAGES))if(d.progress[lang])progress(d.progress[lang],lang);
  if(d.layoutProgress!==undefined){if(!object(d.layoutProgress))fail();for(const [id,p] of Object.entries(d.layoutProgress)){const [lang,layout]=id.split(':');if(!LANGUAGES[lang]||!availableLayouts(lang).includes(layout))fail();progress(p,lang);}}
  if(d.learning!==undefined){if(!object(d.learning))fail();for(const [id,m] of Object.entries(d.learning)){const [lang,layout]=id.split(':');if(!LANGUAGES[lang]||!availableLayouts(lang).includes(layout)||!object(m)||!object(m.keys)||!object(m.pairs))fail();records(m.activities);records(m.checks);records(m.diagnostics||[]);if(!Array.isArray(m.seenChecks)||m.seenChecks.some(x=>typeof x!=='string'))fail();for(const [key,value] of [...Object.entries(m.keys),...Object.entries(m.pairs)]){if(!key||key.length>2||!object(value))fail();for(const field of ['observations','errors'])if(value[field]!==undefined&&(!Number.isFinite(value[field])||value[field]<0))fail();if(value.latencies!==undefined&&(!Array.isArray(value.latencies)||value.latencies.length>500||value.latencies.some(x=>!Number.isFinite(x)||x<0||x>2000)))fail();}}}
