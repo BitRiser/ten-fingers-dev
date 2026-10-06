@@ -1,0 +1,13 @@
+export function isWrongScript(char,expected){return !!char&&!!expected&&(/[а-яё]/iu.test(expected)&&/^[a-z]$/iu.test(char)||/^[a-z]$/iu.test(expected)&&/^[а-яё]$/iu.test(char))}
+export function bindTypingInput(input,{getSession,getSettings,paint,showHint,message,press}){
+ let composing=false;
+ function accept(){let session=getSession();if(composing||!session||session.status==='finished')return;let prev=session.current,value=input.value.normalize('NFC'),prefix=0;while(prefix<prev.length&&prefix<value.length&&prev[prefix]===value[prefix])prefix++;
+  if(value.length>prev.length&&isWrongScript(value[prefix],session.words[session.word]?.[prefix])){message('Переключи язык ввода: ожидается '+(/[а-яё]/iu.test(session.words[session.word][prefix])?'русская':'латинская')+' буква. Этот ввод не попал в статистику.');input.value=prev;return}
+  session.setValue(value);input.value=session.current;message('');paint();
+ }
+ input.addEventListener('compositionstart',()=>{composing=true});input.addEventListener('compositionend',()=>{composing=false;accept()});
+ input.addEventListener('beforeinput',e=>{if(e.isComposing||composing)return;let session=getSession();if(!session)return;if(e.inputType==='insertFromPaste'){e.preventDefault();return}if(e.inputType==='insertText'&&e.data?.length===1&&isWrongScript(e.data,session.words[session.word]?.[input.selectionStart])){if(e.cancelable)e.preventDefault();message('Смени язык ввода. Ожидается '+(/[а-яё]/iu.test(session.words[session.word][input.selectionStart])?'русская':'латинская')+' буква; ошибочный язык не влияет на профиль.')}});
+ input.addEventListener('paste',e=>{e.preventDefault();message('Вставь свой материал в разделе «Тексты», затем набери его с клавиатуры.')});
+ input.addEventListener('input',e=>{if(!e.isComposing)accept()});
+ input.addEventListener('keydown',e=>{let session=getSession(),settings=getSettings();if(!session||e.isComposing||composing)return;if(e.key==='F1'){e.preventDefault();showHint();return}if(e.repeat&&(e.key.length===1||e.key==='Backspace')){e.preventDefault();return}if(e.key===' '){e.preventDefault();press(' ');session.nextWord();input.value=session.current;paint()}else if(e.key==='Backspace'){if(settings.noWayBack){e.preventDefault();return}if(e.ctrlKey||e.metaKey){e.preventDefault();session.clearWord();input.value=session.current;paint()}else if(!input.value){e.preventDefault();session.backspace();input.value=session.current;paint()}}else if(e.key==='Escape'){e.preventDefault();session.pause();input.blur();paint()}else if(e.key==='Enter'){e.preventDefault()}else if(e.key.length===1&&!e.ctrlKey&&!e.metaKey){press(e.key)}});
+}
