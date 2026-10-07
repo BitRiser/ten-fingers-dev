@@ -60,8 +60,10 @@ export class WordView{
    const value=this.session.values[index],active=index===this.session.word,done=index<this.session.word;
    if(item.value===value&&item.active===active&&item.done===done&&item.hideExtra===settings.hideExtra)continue;
    item.node.classList.toggle('bad-word',done&&value!==this.session.words[index]);
-   item.chars.forEach((char,i)=>{const classes=['char'];if(i<value.length)classes.push(value[i]===this.session.words[index][i]?this.session.positions[index][i].error?'corrected':'correct':'incorrect');if(active&&i===value.length)classes.push('caret');const next=classes.join(' ');if(char.className!==next)char.className=next;});
-   const extra=value.slice(this.session.words[index].length);item.extra.textContent=extra&&!settings.hideExtra?'+'+extra:'';
+   item.chars.forEach((char,i)=>{const classes=['char'];if(i<value.length)classes.push(value[i]===this.session.words[index][i]?this.session.positions[index][i].error?'corrected':'correct':'incorrect');if(done&&i>=value.length)classes.push('missed');if(active&&i===value.length)classes.push('caret');const next=classes.join(' ');if(char.className!==next)char.className=next;});
+   const reference=this.session.words[index],wrong=!reference.startsWith(value)||done&&value!==reference;
+   const annotation=wrong?(settings.hideExtra?value.slice(0,reference.length):value):'';
+   item.extra.textContent=annotation;item.extra.style.transform=`scaleX(${annotation?Math.min(1,Math.max(1,item.node.clientWidth-2)/(annotation.length*6.1)):1})`;
    item.value=value;item.active=active;item.done=done;item.hideExtra=settings.hideExtra;
   }
   this.anchorCurrentRow();

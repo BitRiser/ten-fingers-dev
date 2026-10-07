@@ -7,6 +7,20 @@ export function confidence(key,goal){
  // Rounding 99.9% up to 100% must never open a letter below the actual goal.
  return Math.max(0,Math.min(100,Math.floor(key.lastCPM/goal*100)));
 }
+// Display speed and the quality gate are deliberately separate. A failed
+// attempt contributes to the rolling mean, but never earns an unlock sample.
+export function letterSpeed(progress,letter,goal){
+ const values=[],seen=new Set();
+ for(let i=progress.history.length-1;i>=0&&values.length<5;i--){
+  const result=progress.history[i],key=result.keys?.[letter];
+  if(!key||!((key.correct||0)+(key.errors||0)))continue;
+  if(result.sessionId&&seen.has(result.sessionId))continue;
+  if(result.sessionId)seen.add(result.sessionId);
+  values.push(assessPractice(result,result.practiceSample?.goal||goal,[letter]).keys[letter]?.cpm||0);
+ }
+ const cpm=values.length?values.reduce((sum,value)=>sum+value,0)/values.length:0;
+ return {cpm,count:values.length,percent:goal>0?Math.max(0,Math.min(100,cpm/goal*100)):0};
+}
 export function targetLetter(progress,lang,goal){let active=[...LANGUAGES[lang].alphabet].slice(0,progress.unlocked);return active.find(c=>!progress.letters[c]||progress.letters[c].samples<REQUIRED_SAMPLES)||active.reduce((a,c)=>confidence(progress.letters[c],goal)<confidence(progress.letters[a],goal)?c:a,active[0])}
 export function assessPractice(result,goal,letters){
  const floor=goal*SAMPLE_SPEED_RATIO,reasons=[],keys={},accepted=[];
@@ -85,9 +99,38 @@ export function generateWords({lang='ru',letters=LANGUAGES[lang].alphabet,focus=
  return words.map((word,i)=>punctuation&&i>0&&i%6===0?word+(i%12===0?'.':','):word);
 }
 export function practiceMaterial(lang,letters,focus,random=Math.random){
- const pool=wordPool(lang,letters),count=Math.min(25,Math.max(8,pool.length));
- return {words:generateWords({lang,letters,focus,count,random}),type:pool.length?'words':'drill',available:pool.length,
-  note:pool.length<25?'Настоящие слова из доступных букв. Пока словарь небольшой, задания короче; с новыми буквами появятся новые слова.':'Настоящие слова без случайных сочетаний и соседних повторов.'};
+ const real=wordPool(lang,letters).filter(w=>w.length>=4&&w.length<=12),invented=syllableWords(lang,letters,focus,random);
+ if(!invented.length&&!real.length)return {words:keyDrills(letters,32,random),type:'drill',available:0,note:'Сочетания доступных клавиш.'};
+ const count=32,uses=new Set(),words=[],pool=[...new Set([...real,...invented])];
+ for(let i=0;i<count;i++){
+  const aim=focus&&i%2===0,preferReal=real.length>40?i%4!==0:i%4===0;
+  let source=preferReal?real:invented;
+  if(aim)source=source.filter(w=>w.includes(focus));
+  if(!source.length)source=aim?pool.filter(w=>w.includes(focus)):pool;
+  if(!source.length)source=pool;
+  let choices=source.filter(w=>!uses.has(w));if(!choices.length)choices=pool.filter(w=>(!aim||w.includes(focus))&&!uses.has(w));
+  if(!choices.length)choices=source.filter(w=>w!==words.at(-1));if(!choices.length)choices=source;
+  const word=choices[randomIndex(choices.length,random)];words.push(word);uses.add(word);
+ }
+ return {words,type:invented.length?'syllables':'words',available:real.length,
+  note:invented.length?'32 слова из доступных букв: настоящие слова и вымышленные сочетания, которые читаются по слогам.':'32 настоящих слова из доступных букв.'};
+}
+export function syllableWords(lang,letters,focus,random=Math.random){
+ const allowed=[...new Set(letters)],vowels=allowed.filter(c=>(lang==='ru'?'аеёиоуыэюя':'aeiouy').includes(c)),consonants=allowed.filter(c=>!(lang==='ru'?'аеёиоуыэюяьъй':'aeiouy').includes(c));
+ if(!vowels.length||!consonants.length)return [];
+ const syllables=consonants.flatMap(c=>vowels.map(v=>c+v)),words=new Set(),seed=randomIndex(0x7fffffff,random);
+ // A local seeded stream keeps even a constant injected RNG varied and bounded.
+ for(let attempt=0;attempt<900&&words.size<160;attempt++){
+  let state=(seed+Math.imul(attempt+1,2654435761))>>>0;
+  const pick=n=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return Math.floor(state/4294967296*n);};
+  let word=pick(4)===0?vowels[pick(vowels.length)]:'';
+  const length=2+pick(3);for(let i=0;i<length;i++)word+=syllables[pick(syllables.length)];
+  if(pick(3)===0)word+=consonants[pick(consonants.length)];
+  if(word.length<4||word.length>10||/(.)\1\1/u.test(word))continue;
+  if(focus&&allowed.includes(focus)&&attempt%2===0&&!word.includes(focus))continue;
+  words.add(word);
+ }
+ return [...words];
 }
 export function lessonInfo(group,step,layout){let fresh=mapPhysicalKeys(LESSON_GROUPS[group][0],layout);let learned=LESSON_GROUPS.slice(0,group+1).map(([k])=>mapPhysicalKeys(k,layout)).join('');return{fresh,learned,group,step,id:`${layout}:${group}:${step}`}}
 export function lessonWords(info,lang,random=Math.random){

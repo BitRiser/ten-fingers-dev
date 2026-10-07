@@ -78,3 +78,26 @@ await store.complete(attempt,ctx);await store.complete(attempt,ctx);
 const saved=parseBackup(backupData(JSON.parse(values.get(STORAGE_KEY)))),profile=progressFor(saved,'ru','йцукен');
 assert.equal(profile.history.length,1);assert.equal(profile.history[0].practiceSample.floor,175);assert.ok(Object.values(profile.letters).every(k=>k.samples===1));
 console.log('Passed: wrong-key spam, skipped words, correction spam, exact 70%/95% gates, full-goal unlock, unrounded boundary, per-key accuracy, bounded speed, minimum observations, history migration, idempotence, durable storage and backup.');
+// Letter colors use a rolling mean across the last five distinct attempts.
+const rolling=createProgress();
+for(const cpm of [10,100,150,200,250,300])savePractice(rolling,withSpeed(cpm),'ru',goal);
+const {letterSpeed,practiceMaterial,syllableWords}=await import('../dist/core.mjs');
+assert.deepEqual(letterSpeed(rolling,'о',goal),{cpm:190,count:5,percent:76}); // key speed is bounded to 250 in the final attempt
+savePractice(rolling,{...allWrong,sessionId:crypto.randomUUID()},'ru',goal);
+assert.deepEqual(letterSpeed(rolling,'о',goal),{cpm:170,count:5,percent:68},'failed attempts remain in the rolling window');
+assert.deepEqual(letterSpeed({...rolling,history:[...rolling.history,rolling.history.at(-1)]},'о',goal),letterSpeed(rolling,'о',goal),'duplicate sessions do not occupy another rolling slot');
+const isolated={...rolling,history:[...rolling.history,{...withSpeed(250),keys:{а:correct.keys.а}}]};
+assert.deepEqual(letterSpeed(isolated,'о',goal),letterSpeed(rolling,'о',goal),'unrelated attempts do not displace a letter sample');
+assert.equal(letterSpeed(createProgress(),'о',goal).count,0);
+for(const lang of ['ru','en']){
+ const letters=LANGUAGES[lang].alphabet.slice(0,5),focus=letters[0];
+ for(const seed of [.01,.2,.5,.95]){
+  const material=practiceMaterial(lang,letters,focus,()=>seed);
+  assert.equal(material.words.length,32);assert.equal(new Set(material.words).size,32);
+  assert(material.words.every(w=>w.length>=4&&w.length<=12&&[...w].every(c=>letters.includes(c))));
+  assert(material.words.join(' ').length>=180);assert(material.words.filter(w=>w.includes(focus)).length>=16);
+  const invented=syllableWords(lang,letters,focus,()=>seed);assert(invented.length>=100);assert(invented.every(w=>!/(.)\1\1/u.test(w)));
+ }
+ const a=practiceMaterial(lang,letters,focus,()=>.1),b=practiceMaterial(lang,letters,focus,()=>.9);assert.notDeepEqual(a.words,b.words,'new seeds produce different exercises');
+}
+console.log('Passed: rolling five distinct attempts, failed and unobserved letters, bounded letter speed, pronounceable long beginner words, 32 unique words, focus quota and exercise variety.');

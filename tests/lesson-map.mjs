@@ -11,6 +11,7 @@ const markup=lessonMapMarkup(lessons,'qwerty');assert(markup.includes('role="pro
 assert.equal((markup.match(/data-chapter="/g)||[]).length,11,'every chapter is present once, including the folded path');
 assert.equal((markup.match(/data-from-chapter="/g)||[]).length,10,'all eleven chapter blocks form one connected route');
 for(let i=0;i<10;i++)assert(markup.includes(`data-from-chapter="${i}" data-to-chapter="${i+1}"`));
+assert.equal((markup.match(/data-chapter="[01]" open/g)||[]).length,2,'only the two nearest maps are expanded by default');
 assert(markup.includes('journey-fold future'),'distant chapters are hidden until requested');
 for(const step of route.groups[0].steps)lessons[`qwerty:${step.group}:${step.step}`]={passed:true};
 const advanced=lessonMapMarkup(lessons,'qwerty');assert(advanced.includes('journey-fold history'));assert.equal((advanced.match(/data-from-chapter="/g)||[]).length,10);assert.equal(lessonRoute(lessons,'qwerty').next.group,1);

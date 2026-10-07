@@ -51,3 +51,7 @@ for(let i=0;i<sample.words.length;i++){
 }
 assert.equal(codeSession.status,'finished');assert.equal(codeSession.result.finalAccuracy,100);
 console.log('Passed: formatted blocks and line metadata, 40 authored code exercises, supported ANSI symbols, escaped literals, Shift mapping, full correct input, syntax categories, English beginner material, developer vocabulary, independent language profiles, no code unlock bypass and backup round-trip.');
+
+assert.deepEqual(Object.keys(CODE_TRACKS),['javascript','typescript','python','c','cpp']);
+for(const old of ['symbols','terminal','git']){const copy=structuredClone(data);copy.settings.codeTrack=old;const migrated=parseBackup(backupData(copy));assert.equal(migrated.settings.codeTrack,'javascript');assert.equal(migrated.layoutProgress['ru:йцукен'].unlocked,9,'removing tracks preserves saved progress');}
+for(const codeTrack of ['c','cpp']){const copy=structuredClone(data);copy.settings.codeTrack=codeTrack;assert.equal(parseBackup(backupData(copy)).settings.codeTrack,codeTrack);assert(CODE_TRACKS[codeTrack].items.some(([,text])=>text.includes('#include')));}

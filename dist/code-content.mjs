@@ -120,83 +120,83 @@ export const CODE_TRACKS={
       ]
     ]
   },
-  "terminal": {
-    "name": "Terminal",
-    "file": "practice.sh",
-    "mark": "$_",
-    "description": "Git, npm, пути, флаги и команды. Они не выполняются.",
+  "c": {
+    "name": "C",
+    "file": "practice.c",
+    "mark": "C",
+    "description": "Функции, циклы, массивы, указатели и структуры.",
     "items": [
       [
-        "Состояние репозитория",
-        "git status --short\ngit diff --stat"
+        "Первая программа",
+        "#include <stdio.h>\n\nint main(void) {\n  printf(\"Hello, world!\\n\");\n  return 0;\n}"
       ],
       [
-        "Новая ветка",
-        "git switch -c feature/typing-trainer\ngit status --short"
+        "Сумма массива",
+        "int sum(const int *values, int count) {\n  int total = 0;\n  for (int i = 0; i < count; ++i) {\n    total += values[i];\n  }\n  return total;\n}"
       ],
       [
-        "Запуск тестов",
-        "npm run test -- --watch"
+        "Указатели",
+        "void swap(int *left, int *right) {\n  int temp = *left;\n  *left = *right;\n  *right = temp;\n}"
       ],
       [
-        "Сохранение изменений",
-        "git add src/\ngit commit -m \"Improve typing practice\""
+        "Структура",
+        "typedef struct {\n  int id;\n  char name[32];\n} User;\n\nUser user = {1, \"Ada\"};"
       ],
       [
-        "HTTP-запрос",
-        "curl -X GET \"https://example.com/api/users?limit=10\""
+        "Условие",
+        "int maximum(int a, int b) {\n  if (a > b) {\n    return a;\n  }\n  return b;\n}"
       ],
       [
-        "Поиск в файлах",
-        "rg --files src/ | sort"
+        "Работа со строкой",
+        "#include <string.h>\n\nint is_empty(const char *text) {\n  return strlen(text) == 0;\n}"
       ],
       [
-        "Локальная сборка",
-        "npm run build\nnpm run preview"
+        "Цикл while",
+        "int factorial(int n) {\n  int result = 1;\n  while (n > 1) {\n    result *= n--;\n  }\n  return result;\n}"
       ],
       [
-        "Просмотр различий",
-        "git diff --stat\ngit log --oneline -5"
+        "Размер массива",
+        "#include <stddef.h>\n\nsize_t item_count(void) {\n  int items[] = {2, 4, 8, 16};\n  return sizeof(items) / sizeof(items[0]);\n}"
       ]
     ]
   },
-  "symbols": {
-    "name": "Символы",
-    "file": "symbols.txt",
-    "mark": "{}",
-    "description": "Отдельная тренировка скобок, операторов и Shift. Это сочетания знаков.",
+  "cpp": {
+    "name": "C++",
+    "file": "practice.cpp",
+    "mark": "C++",
+    "description": "Потоки, STL, классы, шаблоны и современный C++.",
     "items": [
       [
-        "Скобки",
-        "() [] {} <>\n() [] {} <>"
+        "Первая программа",
+        "#include <iostream>\n\nint main() {\n  std::cout << \"Hello, world!\" << std::endl;\n  return 0;\n}"
       ],
       [
-        "Сравнение",
-        "= == === != !==\n>= <= = == ==="
+        "Вектор и цикл",
+        "#include <vector>\n\nint total(const std::vector<int>& values) {\n  int result = 0;\n  for (const auto value : values) {\n    result += value;\n  }\n  return result;\n}"
       ],
       [
-        "Логические операторы",
-        "&& || !\n&& || !"
+        "Строки",
+        "#include <string>\n\nstd::string greet(const std::string& name) {\n  return \"Hello, \" + name + \"!\";\n}"
       ],
       [
-        "Обращение к данным",
-        "list[index] object.key\nobject[\"key\"] array[0]"
+        "Шаблон функции",
+        "template <typename T>\nT maximum(T left, T right) {\n  return left > right ? left : right;\n}"
       ],
       [
-        "Цифры и знаки",
-        "0 1 2 3 4 5 6 7 8 9\n_ - + = / *"
+        "Класс",
+        "class Counter {\n private:\n  int value = 0;\n\n public:\n  void increment() { ++value; }\n  int get() const { return value; }\n};"
       ],
       [
-        "Пути и имена",
-        "src/main.ts ./package.json\nuser_name config.theme"
+        "Алгоритмы",
+        "#include <algorithm>\n#include <vector>\n\nvoid sort_values(std::vector<int>& values) {\n  std::sort(values.begin(), values.end());\n}"
       ],
       [
-        "Кавычки",
-        "\"text\" 'text' `text`\n\"name\" 'name' `name`"
+        "Словарь",
+        "#include <map>\n#include <string>\n\nstd::map<std::string, int> scores = {\n  {\"Ada\", 95},\n  {\"Linus\", 98}\n};"
       ],
       [
-        "Экранирование",
-        "\\ \\n \\t\n| || \\ | ||"
+        "Лямбда",
+        "#include <algorithm>\n#include <vector>\n\nvoid double_values(std::vector<int>& values) {\n  std::for_each(values.begin(), values.end(), [](int& n) {\n    n *= 2;\n  });\n}"
       ]
     ]
   }
@@ -218,7 +218,7 @@ export function codeExercise(track,index=0,volume='short'){
  const title=parts.length===1?parts[0][0]:`${item.name} · ${parts.length} ${parts.length===6?'примеров':'примера'}`,text=parts.map(([,text])=>text).join('\n\n');
  return{track,title,text,file:item.file,index:selected,volume,parts:parts.length,...codeLines(text)};
 }
-const keywords=new Set('const let var function return if else for of in async await import export from type interface string number boolean public private class new and or not def True False None git npm curl rg'.split(' '));
+const keywords=new Set('const let var function return if else for of in async await import export from type interface string number boolean public private class new and or not def True False None int void char float double unsigned signed size_t bool auto struct typedef sizeof while do switch case break continue static enum typename template include #include const; return; std::cout std::endl'.split(' '));
 export function codeTokenType(token){
  if(keywords.has(token))return 'keyword';
  if(/["'`]/.test(token))return 'string';

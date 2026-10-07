@@ -46,5 +46,371 @@
       "boundary_fade_ms": 6,
       "use": "complete neutral final phrase"
     }
+  },
+  {
+    "file": "switch-red-a.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-red-abs/sound.ogg",
+    "source_git_blob_sha": "23f528e9a4c8e521fd4077f8d84dc9d11b4b4e67",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 27.942,
+      "duration_seconds": 0.15102,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-red-s.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-red-abs/sound.ogg",
+    "source_git_blob_sha": "23f528e9a4c8e521fd4077f8d84dc9d11b4b4e67",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 28.366,
+      "duration_seconds": 0.17701,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-red-d.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-red-abs/sound.ogg",
+    "source_git_blob_sha": "23f528e9a4c8e521fd4077f8d84dc9d11b4b4e67",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 28.771,
+      "duration_seconds": 0.16798,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-red-f.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-red-abs/sound.ogg",
+    "source_git_blob_sha": "23f528e9a4c8e521fd4077f8d84dc9d11b4b4e67",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 29.171,
+      "duration_seconds": 0.201,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-red-space.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-red-abs/sound.ogg",
+    "source_git_blob_sha": "23f528e9a4c8e521fd4077f8d84dc9d11b4b4e67",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 42.071,
+      "duration_seconds": 0.22998,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-red-enter.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-red-abs/sound.ogg",
+    "source_git_blob_sha": "23f528e9a4c8e521fd4077f8d84dc9d11b4b4e67",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 32.833,
+      "duration_seconds": 0.18998,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-red-backspace.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-red-abs/sound.ogg",
+    "source_git_blob_sha": "23f528e9a4c8e521fd4077f8d84dc9d11b4b4e67",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 16.727,
+      "duration_seconds": 0.22703,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-brown-a.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-brown-abs/sound.ogg",
+    "source_git_blob_sha": "8caf39c95a7cbebd8b973c4f8ea794f7e8ee1d14",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 22.324,
+      "duration_seconds": 0.16703,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-brown-s.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-brown-abs/sound.ogg",
+    "source_git_blob_sha": "8caf39c95a7cbebd8b973c4f8ea794f7e8ee1d14",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 22.698,
+      "duration_seconds": 0.16698,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-brown-d.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-brown-abs/sound.ogg",
+    "source_git_blob_sha": "8caf39c95a7cbebd8b973c4f8ea794f7e8ee1d14",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 23.072,
+      "duration_seconds": 0.16299,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-brown-f.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-brown-abs/sound.ogg",
+    "source_git_blob_sha": "8caf39c95a7cbebd8b973c4f8ea794f7e8ee1d14",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 23.408,
+      "duration_seconds": 0.178,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-brown-space.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-brown-abs/sound.ogg",
+    "source_git_blob_sha": "8caf39c95a7cbebd8b973c4f8ea794f7e8ee1d14",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 37.338,
+      "duration_seconds": 0.2,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-brown-enter.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-brown-abs/sound.ogg",
+    "source_git_blob_sha": "8caf39c95a7cbebd8b973c4f8ea794f7e8ee1d14",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 26.548,
+      "duration_seconds": 0.119,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-brown-backspace.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-brown-abs/sound.ogg",
+    "source_git_blob_sha": "8caf39c95a7cbebd8b973c4f8ea794f7e8ee1d14",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 13.667,
+      "duration_seconds": 0.13401,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-blue-a.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-blue-abs/sound.ogg",
+    "source_git_blob_sha": "112c361f274b7ee09fdd815473ce4210e899d008",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 24.33,
+      "duration_seconds": 0.19601,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-blue-s.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-blue-abs/sound.ogg",
+    "source_git_blob_sha": "112c361f274b7ee09fdd815473ce4210e899d008",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 24.7,
+      "duration_seconds": 0.202,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-blue-d.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-blue-abs/sound.ogg",
+    "source_git_blob_sha": "112c361f274b7ee09fdd815473ce4210e899d008",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 25.071,
+      "duration_seconds": 0.19397,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-blue-f.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-blue-abs/sound.ogg",
+    "source_git_blob_sha": "112c361f274b7ee09fdd815473ce4210e899d008",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 25.444,
+      "duration_seconds": 0.20599,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-blue-space.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-blue-abs/sound.ogg",
+    "source_git_blob_sha": "112c361f274b7ee09fdd815473ce4210e899d008",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 36.804,
+      "duration_seconds": 0.24,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-blue-enter.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-blue-abs/sound.ogg",
+    "source_git_blob_sha": "112c361f274b7ee09fdd815473ce4210e899d008",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 28.558,
+      "duration_seconds": 0.161,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "switch-blue-backspace.wav",
+    "source": "https://github.com/hainguyents13/mechvibes/blob/326252a13e7bef4f1c35d08ef0189b5af6f8ba02/src/audio/cherrymx-blue-abs/sound.ogg",
+    "source_git_blob_sha": "112c361f274b7ee09fdd815473ce4210e899d008",
+    "license": "MIT",
+    "license_file": "mechvibes-LICENSE.txt",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 14.748,
+      "duration_seconds": 0.21202,
+      "boundary_fade_ms": 2.5,
+      "use": "recorded key press and release"
+    }
+  },
+  {
+    "file": "gachi-come-on.wav",
+    "source": "https://github.com/styler/gachi-touchbar/blob/2ea6438b1deafc9165208f5edb8da367c7724bb5/assets/MarkW/Come%20on.mp3",
+    "source_git_blob_sha": "a48a06636654fe9b2d6b092e57c4784dda0c5021",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 0.0078,
+      "duration_seconds": 5.45447,
+      "boundary_fade_ms": 2.5,
+      "use": "complete neutral final phrase"
+    }
+  },
+  {
+    "file": "gachi-round.wav",
+    "source": "https://github.com/styler/gachi-touchbar/blob/2ea6438b1deafc9165208f5edb8da367c7724bb5/assets/BillyH/One%20more%20round.mp3",
+    "source_git_blob_sha": "9a68b61798d6b86b31ed9d142bd19a9b577befb6",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 0.0,
+      "duration_seconds": 7.03361,
+      "boundary_fade_ms": 2.5,
+      "use": "complete neutral final phrase"
+    }
+  },
+  {
+    "file": "gachi-surprise.wav",
+    "source": "https://github.com/styler/gachi-touchbar/blob/2ea6438b1deafc9165208f5edb8da367c7724bb5/assets/BillyH/Big%20surprise.mp3",
+    "source_git_blob_sha": "fca98968d4cd3c86b5f8b54b1c2582ca302dabf7",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 0.0,
+      "duration_seconds": 4.95841,
+      "boundary_fade_ms": 2.5,
+      "use": "complete neutral final phrase"
+    }
+  },
+  {
+    "file": "gachi-thanks.wav",
+    "source": "https://github.com/styler/gachi-touchbar/blob/2ea6438b1deafc9165208f5edb8da367c7724bb5/assets/Slave/Thank%20you%20sir.mp3",
+    "source_git_blob_sha": "4d7a0698e4363c260719fedca2dd2e4c1f104b93",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 0.0,
+      "duration_seconds": 0.96336,
+      "boundary_fade_ms": 2.5,
+      "use": "complete neutral final phrase"
+    }
+  },
+  {
+    "file": "gachi-challenges.wav",
+    "source": "https://github.com/styler/gachi-touchbar/blob/2ea6438b1deafc9165208f5edb8da367c7724bb5/assets/BillyH/You%20like%20challenges.mp3",
+    "source_git_blob_sha": "f4f55804a805bb5503076affbebbd9f167a5e831",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 0.0,
+      "duration_seconds": 0.69837,
+      "boundary_fade_ms": 2.5,
+      "use": "complete neutral final phrase"
+    }
+  },
+  {
+    "file": "gachi-go.wav",
+    "source": "https://github.com/styler/gachi-touchbar/blob/2ea6438b1deafc9165208f5edb8da367c7724bb5/assets/BillyH/You%20can%20go%20now.mp3",
+    "source_git_blob_sha": "3117e1d76fd941fdb9ea9f4beb963b22f44b4116",
+    "processing": {
+      "format": "mono PCM16 WAV, 22050 Hz",
+      "start_seconds": 0.0,
+      "duration_seconds": 0.69361,
+      "boundary_fade_ms": 2.5,
+      "use": "complete neutral final phrase"
+    }
   }
 ]
