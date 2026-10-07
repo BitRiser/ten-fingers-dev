@@ -1,9 +1,9 @@
 import {codeTokenType} from './code-content.mjs';
-// A page keeps the same nodes and geometry until its final word is finished.
-// Typing changes colour and the caret, never the width of the reference text.
+// Reference nodes stay fixed within each line. Only crossing a visual line
+// scrolls the bounded strip, keeping the active line at the same eye level.
 export class WordView{
  constructor(root,session,{rows=3,syntax=false,onLayout=()=>{}}={}){
-  this.root=root;this.session=session;this.rows=rows;this.syntax=syntax;this.onLayout=onLayout;this.pages=[];this.page=null;this.nodes=new Map();this.width=root.clientWidth;this.font='';
+  this.root=root;this.session=session;this.rows=rows;this.syntax=syntax;this.onLayout=onLayout;this.pages=[];this.page=null;this.nodes=new Map();this.width=root.clientWidth;this.font='';this.strip=null;
   this.observer=new ResizeObserver(()=>{if(!root.isConnected)return;const width=root.clientWidth;if(width!==this.width){this.width=width;this.invalidate();onLayout();}});
   this.observer.observe(root);document.fonts?.ready.then(()=>{if(root.isConnected){this.invalidate();onLayout();}});
  }
@@ -16,18 +16,21 @@ export class WordView{
   const extra=document.createElement('span');extra.className='word-extras';extra.setAttribute('aria-hidden','true');node.append(extra);
   return {node,chars:[...node.querySelectorAll('.char')],extra,value:null,active:null};
  }
+ mount(fragment){this.strip=document.createElement('div');this.strip.className='reference-strip';this.strip.append(fragment);this.root.replaceChildren(this.strip);this.root.scrollTop=0;this.root.scrollLeft=0;}
  buildPage(start){
-  const nodes=new Map(),fragment=document.createDocumentFragment();
-  // Bounded measuring window: even a four-hour test mounts at most 80 words.
-  for(let i=start;i<Math.min(this.session.words.length,start+80);i++){const item=this.createWord(i);nodes.set(i,item);fragment.append(item.node);}
-  this.root.replaceChildren(fragment);this.root.scrollTop=0;this.root.scrollLeft=0;
+  const nodes=new Map(),fragment=document.createDocumentFragment(),limit=Math.min(this.session.words.length,start+80);
+  for(let i=start;i<limit;i++){const item=this.createWord(i);nodes.set(i,item);fragment.append(item.node);}
+  this.mount(fragment);
   const lineHeight=parseFloat(getComputedStyle(this.root).lineHeight),first=nodes.get(start).node.offsetTop;
-  let end=start;
-  for(const [index,{node}] of nodes){if(index>start&&node.offsetTop-first>=lineHeight*this.rows-1)break;end=index+1;}
-  const page={start,end};
+  let end=start,lastRow=start,lastTop=first;
+  for(const [index,{node}] of nodes){
+   if(index>start&&node.offsetTop-first>=lineHeight*6-1)break;
+   if(node.offsetTop!==lastTop){lastRow=index;lastTop=node.offsetTop;}end=index+1;
+  }
+  // Don't split a partially measured row when the 80-word bound was reached.
+  if(end===limit&&limit<this.session.words.length&&lastRow>start)end=lastRow;
   for(const [index,item] of nodes){if(index>=end){item.node.remove();nodes.delete(index);}}
-  const last=nodes.get(end-1).node;this.root.style.height=Math.max(lineHeight*this.rows,last.offsetTop-first+last.offsetHeight)+'px';this.nodes=nodes;this.page=page;
-  return page;
+  const page={start,end};this.nodes=nodes;this.page=page;return page;
  }
  showCurrentPage(){
   const current=this.session.word;if(this.page&&current>=this.page.start&&current<this.page.end)return;
@@ -35,6 +38,19 @@ export class WordView{
   if(known){this.buildPage(known.start);return;}
   let start=this.pages.at(-1)?.end||0;
   while(start<=current){const page=this.buildPage(start);this.pages.push(page);if(current<page.end)return;start=page.end;}
+ }
+ anchorCurrentRow(){
+  const lineHeight=parseFloat(getComputedStyle(this.root).lineHeight),active=document.body.classList.contains('session-active');
+  const visibleRows=this.syntax?(active?3:6):(active?2:this.rows);
+  this.root.style.height=lineHeight*visibleRows+'px';
+  // Trailing space lets even the final line reach the top of the viewport.
+  this.strip.style.paddingBottom=lineHeight*visibleRows+'px';
+  const item=this.nodes.get(this.session.word),first=this.nodes.values().next().value;
+  const char=item?.chars[Math.min(this.session.current.length,item.chars.length-1)];
+  if(!char||!first)return;
+  const origin=first.chars[0].getBoundingClientRect(),target=char.getBoundingClientRect();
+  const offset=Math.max(0,Math.round(target.top-origin.top));
+  if(Math.abs(this.root.scrollTop-offset)>.5)this.root.scrollTop=offset;
  }
  update(settings){
   const style=getComputedStyle(this.root),font=style.fontSize+':'+style.letterSpacing+':'+this.root.clientWidth;
@@ -45,10 +61,10 @@ export class WordView{
    if(item.value===value&&item.active===active&&item.done===done&&item.hideExtra===settings.hideExtra)continue;
    item.node.classList.toggle('bad-word',done&&value!==this.session.words[index]);
    item.chars.forEach((char,i)=>{const classes=['char'];if(i<value.length)classes.push(value[i]===this.session.words[index][i]?this.session.positions[index][i].error?'corrected':'correct':'incorrect');if(active&&i===value.length)classes.push('caret');const next=classes.join(' ');if(char.className!==next)char.className=next;});
-   // Additional input is a small badge outside text flow, so it cannot rewrap a row.
    const extra=value.slice(this.session.words[index].length);item.extra.textContent=extra&&!settings.hideExtra?'+'+extra:'';
    item.value=value;item.active=active;item.done=done;item.hideExtra=settings.hideExtra;
   }
+  this.anchorCurrentRow();
  }
  caretRect(){
   const item=this.nodes.get(this.session.word);if(!item)return null;

@@ -18,11 +18,11 @@ export class CodeView extends WordView{
    if(line.start===line.end)body.append(document.createTextNode('\u00a0'));
    row.append(body);fragment.append(row);
   }
-  this.root.replaceChildren(fragment);this.root.style.height='auto';
+  this.mount(fragment);
   const page={start:pageLines[0].start,end:pageLines.at(-1).end};this.nodes=nodes;this.page=page;return page;
  }
  update(settings){
   super.update(settings);
-  for(const row of this.root.children){const line=this.lines[Number(row.dataset.line)-1];row.classList.toggle('active-code-line',this.session.word>=line.start&&this.session.word<line.end);}
+  for(const row of this.strip.children){const line=this.lines[Number(row.dataset.line)-1];row.classList.toggle('active-code-line',this.session.word>=line.start&&this.session.word<line.end);}
  }
 }

@@ -1,0 +1,78 @@
+/* Desktop workspace: one-screen entry, readable summaries, steady eye line. */
+.dev-home{display:flex;flex-direction:column;gap:clamp(16px,3vh,30px);justify-content:center;height:100%}
+.home-hero h2{font-size:clamp(32px,3.3vw,47px);line-height:1.2;margin:12px 0;color:var(--text);letter-spacing:-.065em}
+.home-hero h2 span{color:var(--accent)}
+.home-hero>p{color:var(--muted);font-size:12px;max-width:720px;line-height:1.8}
+.home-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.home-mode{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:22px;border:1px solid var(--line);border-radius:10px;background:var(--panel);gap:9px;position:relative}
+.home-mode:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 4%,var(--panel))}
+.mode-mark{font-size:21px;color:var(--accent);line-height:1.3}
+.home-mode .mode-mark{position:absolute;right:20px;top:17px;opacity:.65}
+.home-mode h3{font-size:18px;color:var(--text);margin-top:9px}
+.home-mode p{font-size:11px;color:var(--muted);line-height:1.85}
+.home-mode b{font-size:11px;color:var(--accent);font-weight:500;margin-top:6px}
+.home-mode.code-mode{border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
+.home-bottom{display:flex;align-items:center;gap:22px;padding:17px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.home-bottom>div{flex:1}.home-bottom h3{font-size:13px;color:var(--text)}
+.home-bottom p{font-size:10px;color:var(--muted);margin-top:5px}.home-bottom button{font-size:11px;white-space:nowrap}
+.home-footnote{display:flex;justify-content:space-between;gap:15px;color:var(--muted);font-size:9px;line-height:1.7}
+body[data-view=home] #main{height:100dvh;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+body[data-view=home] #header{width:100%;flex-shrink:0;margin-bottom:18px;min-height:66px;padding-top:10px}
+body[data-view=home] #content{flex:1;min-height:0;width:100%}
+body[data-view=home] footer{flex-shrink:0;width:100%;margin-top:15px;padding-bottom:0}
+.reference-strip{position:relative;min-width:0}
+.words.code-lines{overflow:hidden!important;min-height:0!important;scroll-behavior:auto}
+.code-source-line{min-height:1.8em}
+/* Entering the exercise deliberately aligns it in the window. Exiting restores
+   the normal page; line scrolling happens only inside the reference viewport. */
+body.session-active{overflow:hidden}
+body.session-active .exercise{position:fixed;top:62px;left:244px;right:28px;bottom:14px;z-index:30;display:flex;flex-direction:column;align-items:center;gap:16px;margin:0;max-width:none}
+body.session-active .editor-surface{width:100%;max-width:1080px;flex:none;background:var(--bg)}
+body.session-active .editor-toolbar{height:34px;min-height:34px}
+body.session-active .focus-controls{height:0;min-height:0;padding:0}
+body.session-active .focus-controls>span{display:none}
+body.session-active .focus-controls button{position:fixed;top:16px;right:28px;z-index:50;opacity:1;color:var(--text);background:var(--panel);border:1px solid var(--line);padding:8px 12px;border-radius:6px;pointer-events:auto;filter:none}
+body.session-active .stage{min-height:0;padding:34px 22px 10px 55px}
+body.session-active .code-exercise .stage{padding-left:18px}
+body.session-active .exercise-actions{display:none}
+body.session-active .editor-status{padding:6px 14px;min-height:28px}
+body.session-active .input-message:empty{display:none}
+body.session-active .keyboard-wrap.mac-keyboard{margin:0 auto;max-width:960px;flex:none}
+body.session-active .keyboard-model,body.session-active .keyboard-sound-toolbar,body.session-active .hand-caption{display:none}
+body.session-active .mac-keyboard .finger-hint{margin:0;min-height:18px}
+body.session-active .mac-keyboard.no-hands .keyboard-svg{margin-bottom:0}
+/* Four concise metrics. Details do not dominate the default page. */
+.compact-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0}
+.compact-stats article{padding:15px 17px;border:1px solid var(--line);border-radius:7px;background:var(--panel)}
+.compact-stats span,.compact-stats small{display:block;font-size:10px;color:var(--muted)}
+.compact-stats strong{display:block;font-size:28px;color:var(--accent);font-weight:500;line-height:1.3;margin:7px 0}
+.compact-stats small{font-size:9px;line-height:1.6}
+.stats-overview{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px}
+.stats-overview>section{min-width:0;padding:16px;border:1px solid var(--line);border-radius:7px}
+.stats-overview h3{font-size:12px;color:var(--text);margin-bottom:12px}
+.stats-overview h3 small{color:var(--muted);margin-left:8px;font-size:9px}
+.stats-overview .history-chart{width:100%;height:150px;margin:0}
+.compact-chart p,.stats-folds p{font-size:10px;color:var(--muted);line-height:1.7}
+.recent-sessions th,.recent-sessions td{font-size:9px;padding:8px 5px;white-space:nowrap}
+.recent-sessions td:first-child{max-width:170px;white-space:normal}
+.stats-folds{margin-top:18px;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.stats-folds>details+details{border-top:1px solid var(--line)}
+.stats-folds summary{cursor:pointer;padding:13px 16px;font-size:11px;color:var(--text)}
+.stats-folds summary small{color:var(--muted);font-size:9px;margin-left:12px}
+.stats-folds details> :not(summary){margin:0 16px 16px}.stats-folds .stat-section{padding-top:15px;margin-top:0}
+.compact-letter-progress{display:flex;flex-wrap:wrap;gap:8px;padding-top:10px}
+.letter-progress-item{background:var(--panel);border:1px solid var(--line);padding:10px 12px;border-radius:5px;text-align:left;min-width:100px}
+.letter-progress-item b{font-size:18px;color:var(--accent)}.letter-progress-item span,.letter-progress-item small{display:block;font-size:9px;color:var(--muted)}
+.compact-stats-note{font-size:10px;color:var(--muted);line-height:1.8;margin-top:16px}
+.empty-stats{padding:30px;text-align:center;border:1px dashed var(--line);border-radius:8px}.empty-stats h3{font-size:16px;margin:12px 0;color:var(--text)}.empty-stats p{font-size:11px;color:var(--muted);margin-bottom:18px}
+@media(min-width:1001px) and (max-height:780px){
+ .sidebar{padding-top:15px;gap:3px}.logo{margin-bottom:15px}.nav-section{margin-bottom:5px}.nav-button{height:35px}.sidebar-note{padding:10px 8px}.nav-spacer{min-height:8px}.version{margin-top:10px}
+ .dev-home{gap:16px}.home-hero h2{font-size:34px;margin:8px 0}.home-mode{padding:18px;gap:7px}.home-mode h3{font-size:16px}.home-bottom{padding:13px 0}
+}
+@media(max-width:1100px){.home-footnote span:last-child{display:none}.home-mode{padding:16px}.home-mode h3{font-size:16px}.home-bottom{gap:14px}.home-bottom p{max-width:280px}.stats-overview{grid-template-columns:1fr 1.15fr}}
+@media(max-width:1000px){body.session-active .exercise{left:88px;right:20px}.home-hero h2{font-size:32px}}
+/* Keep a usable fallback on narrow windows; desktop is the primary product. */
+@media(max-width:720px){body[data-view=home] #main{height:auto;min-height:100dvh;overflow:visible}.dev-home{height:auto;padding-bottom:20px}.home-modes{grid-template-columns:1fr}.home-bottom{flex-wrap:wrap}.home-bottom>div{flex-basis:100%}.home-footnote{display:block}.compact-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stats-overview{grid-template-columns:1fr}body.session-active .exercise{left:12px;right:12px;bottom:75px}.home-hero h2{font-size:30px}}
+
+.stats-folds .table-wrap{max-height:360px;overflow:auto}.stats-folds thead{position:sticky;top:0;background:var(--panel);z-index:1}
+body[data-view=stats] #header{margin-bottom:20px}body[data-view=stats] footer{margin-top:18px}
