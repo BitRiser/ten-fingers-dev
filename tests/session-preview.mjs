@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {createSessionPreview} from '../dist/session-preview.mjs';
+import {TypingSession} from '../dist/core.mjs';
+let clock=0,next=0,shown=0,hidden=0,focused=null;const tasks=new Map();
+const advance=ms=>{clock+=ms;for(const [id,task] of tasks)if(task.at<=clock){tasks.delete(id);task.fn();}};
+const preview=createSessionPreview({setTimer:(fn,delay)=>{const id=++next;tasks.set(id,{fn,at:clock+delay});return id;},clearTimer:id=>tasks.delete(id),onShow:()=>shown++,onHide:()=>hidden++,onReady:s=>focused=s});
+const first=new TypingSession(['some','code'],{now:()=>clock});
+preview.reset(first);preview.start(first);preview.start(first);assert.equal(shown,1);assert(preview.pending);assert(!preview.ready);
+advance(1999);assert.equal(focused,null);assert.equal(first.status,'idle');assert.equal(first.duration,0);
+advance(1);assert.equal(focused,first);assert(preview.ready);assert(!preview.pending);assert.equal(first.duration,0);
+first.setValue('s');advance(100);assert.equal(first.duration,100,'The preview never contributes to CPM');
+first.pause();preview.start(first);assert.equal(shown,1,'A pause does not replay the preview');
+const second=new TypingSession(['next']);preview.reset(second);focused=null;preview.start(second);advance(500);preview.cancel();advance(2000);assert.equal(focused,null);assert(!preview.ready);assert.equal(second.status,'idle');
+preview.start(second);advance(2000);assert.equal(focused,second,'Cancellation leaves the same exercise available to start again');
+const third=new TypingSession(['other']);preview.reset(second);focused=null;preview.start(second);advance(1000);preview.reset(third);advance(3000);assert.equal(focused,null,'A stale callback cannot start another screen');
+preview.start(second);assert.equal(focused,null,'Only the owner can request a preview');assert.equal(tasks.size,0);
+preview.start(third);preview.reset(null);advance(2000);assert.equal(focused,null);assert(hidden>0);
+console.log('Passed: two-second preview, one timer, no preview time in CPM, resume, cancel/retry, navigation and stale ownership.');

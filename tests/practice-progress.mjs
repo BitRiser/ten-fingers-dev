@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {LANGUAGES} from '../dist/data.mjs';
-import {TypingSession,createProgress,savePractice,confidence,ensurePracticeProgress,loadData,assessPractice} from '../dist/core.mjs';
+import {TypingSession,createProgress,savePractice,confidence,ensurePracticeProgress,loadData,assessPractice,lessonThreshold,wordPool} from '../dist/core.mjs';
 import {ensureLearning,progressFor,parseBackup,backupData} from '../dist/learning.mjs';
 import {ProgressStore,STORAGE_KEY,applyCompletion} from '../dist/progress-store.mjs';
 const alphabet=LANGUAGES.ru.alphabet.slice(0,5),goal=250;
@@ -21,7 +21,7 @@ function typeExercise(mode='correct',interval=240){
 const allWrong=typeExercise('wrong',24),skipped=typeExercise('skip',24),correctedSpam=typeExercise('corrected-spam',24);
 assert.equal(allWrong.cpm,0,'Wrong words cannot earn CPM from their separating spaces');
 assert.equal(allWrong.correct,0);assert.equal(allWrong.accuracy,0);
-assert.equal(skipped.accuracy,100);assert.ok(skipped.finalAccuracy<95);
+assert.ok(skipped.accuracy<100);assert.ok(skipped.errors>0);assert.ok(skipped.finalAccuracy<95);
 assert.equal(correctedSpam.finalAccuracy,100);assert.ok(correctedSpam.cpm>goal);assert.equal(correctedSpam.firstAttemptAccuracy,0);
 for(const attempt of [allWrong,skipped,correctedSpam]){
  const p=createProgress();for(let i=0;i<12;i++)savePractice(p,{...attempt,sessionId:crypto.randomUUID()},'ru',goal);
@@ -53,14 +53,15 @@ const lowerThreshold={...createProgress(),samplePolicy:2,unlocked:7,letters:{о:
 ensurePracticeProgress(lowerThreshold,'ru',goal);assert.equal(lowerThreshold.letters.о.samples,18);assert.equal(lowerThreshold.unlocked,7);
 ensurePracticeProgress(lowerThreshold,'ru',goal);assert.equal(lowerThreshold.letters.о.samples,18,'Migration cannot add the same new sample twice');
 // Lessons use the same exact threshold and cannot pass by skipping text.
-const lessonData=ensureLearning(loadData({getItem:()=>null})),lessonContext={kind:'lesson',lang:'ru',layout:'йцукен',id:'йцукен:0:3',step:3};
-for(const accuracy of [84.999,85,85]){
- const result=withSpeed(120,{accuracy,firstAttemptAccuracy:accuracy,finalAccuracy:accuracy});
- applyCompletion(lessonData,result,lessonContext);assert.equal(result.lessonSuccess,accuracy>=85);
+const lessonData=ensureLearning(loadData({getItem:()=>null})),lessonContext={kind:'lesson',lang:'ru',layout:'йцукен',id:'йцукен:4:3',group:4,step:3};
+const lessonTarget=lessonThreshold(lessonContext);
+for(const accuracy of [lessonTarget.accuracy-.001,lessonTarget.accuracy,lessonTarget.accuracy]){
+ const result=withSpeed(lessonTarget.cpm,{accuracy,firstAttemptAccuracy:accuracy,finalAccuracy:accuracy});
+ applyCompletion(lessonData,result,lessonContext);assert.equal(result.lessonSuccess,accuracy>=lessonTarget.accuracy);
 }
 assert.equal(progressFor(lessonData,'ru','йцукен').lessons[lessonContext.id].passed,true);
-for(const [field,value] of [['finalAccuracy',84.999],['firstAttemptAccuracy',0],['cpm',119.999]]){
- const result=withSpeed(120,{[field]:value});applyCompletion(lessonData,result,{...lessonContext,id:field});assert.equal(result.lessonSuccess,false);
+for(const [field,value] of [['finalAccuracy',lessonTarget.accuracy-.001],['firstAttemptAccuracy',0],['cpm',lessonTarget.cpm-.001]]){
+ const result=withSpeed(lessonTarget.cpm,{[field]:value});applyCompletion(lessonData,result,{...lessonContext,id:field});assert.equal(result.lessonSuccess,false);
 }
 const fastKeys=Object.fromEntries(Object.entries(correct.keys).map(([c,k])=>[c,{...k,avgMs:20,latencies:[20,20]}]));
 const capped=createProgress();for(let i=0;i<5;i++)savePractice(capped,withSpeed(175,{keys:fastKeys}),'ru',goal);
@@ -107,11 +108,21 @@ for(const lang of ['ru','en']){
  const letters=LANGUAGES[lang].alphabet.slice(0,5),focus=letters[0];
  for(const seed of [.01,.2,.5,.95]){
   const material=practiceMaterial(lang,letters,focus,()=>seed);
-  assert.equal(material.words.length,32);assert.equal(new Set(material.words).size,32);
-  assert(material.words.every(w=>w.length>=4&&w.length<=12&&[...w].every(c=>letters.includes(c))));
-  assert(material.words.join(' ').length>=180);assert(material.words.filter(w=>w.includes(focus)).length>=16);
+  assert.equal(material.words.length,16);assert(new Set(material.words).size>=10,'Only connecting words can repeat');
+  assert.deepEqual([...new Set(material.words.map(w=>w.length))].sort(),[2,3,4,5,6,7,8]);
+  assert(new Set(material.words.map(w=>w[0])).size>=4,'Different word beginnings');
+  assert(material.words.filter(w=>/(.)\1/u.test(w)).length>=2,'Double consecutive letters');
+  const dictionary=wordPool(lang,letters);assert(material.words.filter(w=>dictionary.includes(w)).length>=8,'Real connecting phrases accompany training words');
+  assert([...letters].every(c=>material.words.join('').split(c).length-1>=2),'Every initial letter can earn a sample');
+  assert(material.words.every(w=>w.length>=2&&w.length<=8&&[...w].every(c=>letters.includes(c))));
+  assert(material.words.join(' ').length<150);assert(material.words.filter(w=>w.includes(focus)).length>=8);
   const invented=syllableWords(lang,letters,focus,()=>seed);assert(invented.length>=100);assert(invented.every(w=>!/(.)\1\1/u.test(w)));
  }
  const a=practiceMaterial(lang,letters,focus,()=>.1),b=practiceMaterial(lang,letters,focus,()=>.9);assert.notDeepEqual(a.words,b.words,'new seeds produce different exercises');
 }
-console.log('Passed: rolling five distinct attempts, failed and unobserved letters, bounded letter speed, pronounceable long beginner words, 32 unique words, focus quota and exercise variety.');
+console.log('Passed: rolling five distinct attempts, failed and unobserved letters, bounded letter speed, short beginner phrases, real words, mixed 2–8 lengths, doubled letters and balanced beginnings, focus quota and exercise variety.');
+const {PRACTICE_PHRASES}=await import('../dist/practice-phrases.mjs');
+for(const [lang,phrases] of Object.entries(PRACTICE_PHRASES)){
+ for(const text of phrases){const words=text.split(' ');assert.equal(words.length,16);assert(words.every(w=>w.length>=2&&w.length<=8&&[...w].every(c=>LANGUAGES[lang].alphabet.includes(c))));}
+ const a=practiceMaterial(lang,LANGUAGES[lang].alphabet,null,()=>.1),b=practiceMaterial(lang,LANGUAGES[lang].alphabet,null,()=>.1);assert.equal(a.type,'words');assert.equal(b.type,'words');assert.notDeepEqual(a.words,b.words,'Natural paragraphs alternate as letters become available');
+}

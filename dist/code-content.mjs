@@ -32,7 +32,7 @@ export const CODE_TRACKS={
     "description": "Потоки, STL, классы, шаблоны и современный C++."
   }
 };
-export const CODE_VOLUMES={short:{name:'Короткий'},medium:{name:'Средний'},long:{name:'Длинный'}};
+export const CODE_VOLUMES={short:{name:'Короткий',min:15,max:20},medium:{name:'Средний',min:20,max:30},long:{name:'Длинный',min:30,max:40}};
 export function codeLines(text){
  let next=0;
  const lines=text.split('\n').map((source,index)=>{

@@ -1,7 +1,14 @@
 import {LANGUAGES,DEFAULT_SETTINGS,LESSON_GROUPS,mapPhysicalKeys} from './data.mjs';
 import {EXTRA_WORDS} from './vocabulary.mjs';
+import {PRACTICE_PHRASES} from './practice-phrases.mjs';
 export const PRACTICE_POLICY=3, SAMPLE_SPEED_RATIO=.7, SAMPLE_ACCURACY=85, REQUIRED_SAMPLES=3;
-export const lessonThreshold=ctx=>({cpm:ctx.step===0?0:ctx.step<3?60:120,accuracy:SAMPLE_ACCURACY});
+export function lessonThreshold(ctx){
+ const group=ctx.group||0,step=ctx.step||0;
+ if(group===0)return {cpm:[0,0,0,20,30][step]||0,accuracy:[65,70,75,78,80][step]||80,attempts:1};
+ const accuracy=step===0?70:step===1?75:step===2?80:Math.min(90,80+Math.floor(group/3)*2+(step-3)*2);
+ const cpm=step<2?0:step===2?Math.min(50,20+group*3):Math.min(140,30+group*5+(step-3)*10);
+ return {cpm,accuracy,attempts:step===LESSON_GROUPS[group][1]-1?2:1};
+}
 export function createProgress(){return {unlocked:5,letters:{},history:[],lessons:{},lessonHistory:[],tests:[],samplePolicy:PRACTICE_POLICY}}
 export function confidence(key,goal){
  if(!key||key.samples<REQUIRED_SAMPLES||!key.lastQualified||key.lastAccuracy<SAMPLE_ACCURACY||!Number.isFinite(goal)||goal<=0)return 0;
@@ -116,50 +123,70 @@ export function generateWords({lang='ru',letters=LANGUAGES[lang].alphabet,focus=
  }
  return words.map((word,i)=>punctuation&&i>0&&i%6===0?word+(i%12===0?'.':','):word);
 }
+export const PRACTICE_WORD_COUNT=16;
+const lastPracticePhrase=new Map();
+// Real connecting phrases become available with their letters. At the start
+// nouns may be invented; later the vocabulary supplies mostly genuine words.
+const PRACTICE_FRAMES={
+ ru:[['она','на'],['они','не'],['он','на'],['она','не'],['мы','нашли'],['это','новый'],['там','стоит'],['они','видят'],['ты','читаешь'],['мы','пишем']],
+ en:[['at','the'],['the','tea'],['eat','the'],['the','heat'],['we','have'],['they','read'],['this','is'],['we','write']],
+ fr:[['il','est'],['elle','est'],['nous','avons'],['avec','les']]
+};
 export function practiceMaterial(lang,letters,focus,random=Math.random){
- const real=wordPool(lang,letters).filter(w=>w.length>=4&&w.length<=12),invented=syllableWords(lang,letters,focus,random);
- if(!invented.length&&!real.length)return {words:keyDrills(letters,32,random),type:'drill',available:0,note:'Сочетания доступных клавиш.'};
- const count=32,uses=new Set(),words=[],pool=[...new Set([...real,...invented])];
- for(let i=0;i<count;i++){
-  const aim=focus&&i%2===0,preferReal=real.length>40?i%4!==0:i%4===0;
-  let source=preferReal?real:invented;
-  if(aim)source=source.filter(w=>w.includes(focus));
-  if(!source.length)source=aim?pool.filter(w=>w.includes(focus)):pool;
-  if(!source.length)source=pool;
-  let choices=source.filter(w=>!uses.has(w));if(!choices.length)choices=pool.filter(w=>(!aim||w.includes(focus))&&!uses.has(w));
-  if(!choices.length)choices=source.filter(w=>w!==words.at(-1));if(!choices.length)choices=source;
-  const word=choices[randomIndex(choices.length,random)];words.push(word);uses.add(word);
+ const valid=w=>w.length>=2&&w.length<=8&&[...w].every(c=>letters.includes(c)),extra=lang==='ru'?['анне','неона','неоне','анион','аниона','анионе','иона','ионе','нони']:[],real=[...new Set([...wordPool(lang,letters),...extra])].filter(valid),invented=syllableWords(lang,letters,focus,random);
+ const phraseKey=lang+':'+letters,phrases=(PRACTICE_PHRASES[lang]||[]).filter(text=>text.split(' ').every(valid)&&(!focus||text.split(focus).length>2)&&text!==lastPracticePhrase.get(phraseKey));
+ if(phrases.length&&random()<.65){const text=phrases[randomIndex(phrases.length,random)];lastPracticePhrase.set(phraseKey,text);return {words:text.split(' '),type:'words',available:real.length,note:'16 слов · 2–8 букв. Короткий связный текст из уже доступных букв.'};}
+ const pool=[...new Set([...real,...invented])];
+ if(!pool.length)return {words:keyDrills(letters,PRACTICE_WORD_COUNT,random),type:'drill',available:0,note:'16 коротких сочетаний доступных клавиш.'};
+ const frames=(PRACTICE_FRAMES[lang]||[]).filter(frame=>frame.every(valid)),words=[],used=new Set(),starts=new Map(),observed=new Map();
+ const add=word=>{words.push(word);used.add(word);starts.set(word[0],(starts.get(word[0])||0)+1);for(const c of word)observed.set(c,(observed.get(c)||0)+1);};
+ // Each fragment has two real words and two practice words. Slot lengths
+ // deliberately span 2..8, instead of a fixed number of CV syllables.
+ const lengths=[4,5,6,3,7,4,8,5],frameOffset=randomIndex(frames.length||1,random);let slot=0;
+ for(let part=0;part<4;part++){
+  if(frames.length){const frame=frames[(frameOffset+part)%frames.length];frame.forEach(add);}
+  for(let n=0;n<(frames.length?2:4);n++){
+   const length=lengths[slot%lengths.length],double=slot===0||slot===5;
+   let choices=pool.filter(w=>!used.has(w)&&(!focus||w.includes(focus))&&w.length===length&&(!double||/(.)\1/u.test(w)));
+   if(!choices.length)choices=pool.filter(w=>!used.has(w)&&(!focus||w.includes(focus))&&w.length===length);
+   if(!choices.length)choices=pool.filter(w=>!used.has(w)&&(!focus||w.includes(focus))&&(!double||/(.)\1/u.test(w)));
+   if(!choices.length)choices=pool.filter(w=>!used.has(w));if(!choices.length)choices=pool.filter(w=>w!==words.at(-1));if(!choices.length)choices=pool;
+   const score=w=>(starts.get(w[0])||0)*4-[...new Set(w)].filter(c=>(observed.get(c)||0)<2).length*3-(real.includes(w)?1:0);
+   const best=Math.min(...choices.map(score));choices=choices.filter(w=>score(w)===best);add(choices[randomIndex(choices.length,random)]);slot++;
+  }
  }
- return {words,type:invented.length?'syllables':'words',available:real.length,
-  note:invented.length?'32 слова из доступных букв: настоящие слова и вымышленные сочетания, которые читаются по слогам.':'32 настоящих слова из доступных букв.'};
+ return {words,type:invented.length?'syllables':'words',available:real.length,note:'16 слов · 2–8 букв. Настоящие слова связывают учебные сочетания в короткие фразы. Только доступные буквы.'};
 }
 export function syllableWords(lang,letters,focus,random=Math.random){
  const allowed=[...new Set(letters)],vowels=allowed.filter(c=>(lang==='ru'?'аеёиоуыэюя':'aeiouy').includes(c)),consonants=allowed.filter(c=>!(lang==='ru'?'аеёиоуыэюяьъй':'aeiouy').includes(c));
  if(!vowels.length||!consonants.length)return [];
- const syllables=consonants.flatMap(c=>vowels.map(v=>c+v)),words=new Set(),seed=randomIndex(0x7fffffff,random);
- // A local seeded stream keeps even a constant injected RNG varied and bounded.
- for(let attempt=0;attempt<900&&words.size<160;attempt++){
+ const words=new Set(),seed=randomIndex(0x7fffffff,random);
+ for(let attempt=0;attempt<6000&&words.size<700;attempt++){
   let state=(seed+Math.imul(attempt+1,2654435761))>>>0;
   const pick=n=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return Math.floor(state/4294967296*n);};
-  let word=pick(4)===0?vowels[pick(vowels.length)]:'';
-  const length=2+pick(3);
+  const length=2+attempt%7;let vowel=pick(2)===0,word='',run=0;
   for(let i=0;i<length;i++){
-   const cv=syllables[pick(syllables.length)];
-   // CV, closed syllables, and an occasional vowel onset make different rhythms.
-   word+=cv;
-   if(pick(5)===0&&i<length-1)word+=consonants[pick(consonants.length)];
+   const chars=vowel?vowels:consonants;
+   const repeat=i>0&&pick(5)===0&&chars.includes(word.at(-1));
+   word+=repeat?word.at(-1):chars[pick(chars.length)];run++;
+   if(run>=2||pick(5)!==0){vowel=!vowel;run=0;}
   }
-  if(pick(3)===0)word+=consonants[pick(consonants.length)];
-  if(word.length<4||word.length>12||/(.)\1\1/u.test(word))continue;
-  if(focus&&allowed.includes(focus)&&attempt%2===0&&!word.includes(focus))continue;
+  // No triples, no repeated two/three-letter chant, no all-consonant words.
+  if(![...word].some(c=>vowels.includes(c))||/(.)\1\1/u.test(word)||/(.{2})\1/u.test(word)||/^(.)\1/u.test(word)||/(.)\1$/u.test(word)||(word.match(/(.)\1/gu)||[]).length>1)continue;
   words.add(word);
  }
  return [...words];
 }
-export function lessonInfo(group,step,layout){let fresh=mapPhysicalKeys(LESSON_GROUPS[group][0],layout);let learned=LESSON_GROUPS.slice(0,group+1).map(([k])=>mapPhysicalKeys(k,layout)).join('');return{fresh,learned,group,step,id:`${layout}:${group}:${step}`}}
+export function lessonInfo(group,step,layout){let fresh=mapPhysicalKeys(LESSON_GROUPS[group][0],layout);let learned=LESSON_GROUPS.slice(0,group+1).map(([k])=>mapPhysicalKeys(k,layout)).join('');if(group===0&&step<2){fresh=fresh.slice(0,2);learned=fresh;}return{fresh,learned,group,step,id:`${layout}:${group}:${step}`}}
 export function lessonWords(info,lang,random=Math.random){
- if(info.step<=2)return keyDrills(info.step===0?info.fresh:info.learned,25,random);
- return generateWords({lang,letters:info.learned,focus:info.fresh[info.step%info.fresh.length],count:25,random});
+ const {step,group,fresh,learned}=info,count=step===0?8:step<3?10:Math.min(18,12+group);
+ if(step===0)return Array.from({length:count},(_,i)=>fresh[i%fresh.length]);
+ if(step<=2){const chars=[...fresh],pairs=chars.flatMap(a=>chars.map(b=>a+b)),words=[];let bag=[];while(words.length<count){if(!bag.length){bag=[...pairs];for(let i=bag.length-1;i>0;i--){const j=randomIndex(i+1,random);[bag[i],bag[j]]=[bag[j],bag[i]];}if(bag.at(-1)===words.at(-1)&&bag.length>1)[bag[0],bag[bag.length-1]]=[bag.at(-1),bag[0]];}words.push(bag.pop());}return words;}
+ const max=Math.min(8,group<2?3:group<5?4:group<8?6:8),real=wordPool(lang,learned).filter(w=>w.length<=max),pool=real.length>=6?real:[...new Set([...real,...syllableWords(lang,learned,null,random).filter(w=>w.length<=max)])];
+ if(!pool.length)return keyDrills(learned,count,random).map(w=>w.slice(0,max));
+ const words=[],uses=new Map(),focus=fresh[step%fresh.length];
+ for(let i=0;i<count;i++){let choices=pool.filter(w=>w!==words.at(-1)&&(!(i%2===0)||w.includes(focus)));if(!choices.length)choices=pool.filter(w=>w!==words.at(-1));if(!choices.length)choices=pool;const min=Math.min(...choices.map(w=>uses.get(w)||0));choices=choices.filter(w=>(uses.get(w)||0)===min);const word=choices[randomIndex(choices.length,random)];words.push(word);uses.set(word,(uses.get(word)||0)+1);}
+ return words;
 }
 // Alignment keeps a single insertion from turning the rest of a word into errors.
 export function alignText(reference,typed){
@@ -175,7 +202,7 @@ export class TypingSession{
  constructor(words,{mode='words',seconds=0,spaceToFinish=true,noWayBack=false,strictTest=false,now=()=>performance.now(),sessionId=globalThis.crypto?.randomUUID?.()||'session-'+Date.now()+'-'+Math.random().toString(36).slice(2)}={}){
   if(!Array.isArray(words)||!words.length||words.length>10000||words.some(w=>typeof w!=='string'||!w.length||w.length>80||/\s/u.test(w)))throw new Error('Упражнение должно содержать непустые слова длиной до 80 символов.');
   if(mode==='time'&&(!Number.isFinite(seconds)||seconds<=0))throw new Error('Продолжительность теста должна быть больше нуля.');this.sessionId=sessionId;
-  this.words=Object.freeze(words.map(w=>w.normalize('NFC')));this.options=Object.freeze({mode,seconds,spaceToFinish,noWayBack,strictTest});this.now=now;this.word=0;this.values=words.map(()=>'');this.positions=this.words.map(w=>[...w].map(()=>({success:false,error:false,first:null,intervals:[]})));this.extras=words.map(()=>new Set());this.status='idle';this.activeMs=0;this.lastStart=0;this.lastKey=null;this.lastCommitted=null;this.correctRegistrations=0;this.errorRegistrations=0;this.firstCorrect=0;this.firstCount=0;this.keyStats={};this.pairStats={};this.corrections=0;this.deleted=0;this.correctionMs=0;this.correctionStarted=null;this.hints=0;this.pauses=0;this.comparable=true;this.spaces=0;this.result=null;
+  this.words=Object.freeze(words.map(w=>w.normalize('NFC')));this.options=Object.freeze({mode,seconds,spaceToFinish,noWayBack,strictTest});this.now=now;this.word=0;this.values=words.map(()=>'');this.positions=this.words.map(w=>[...w].map(()=>({success:false,error:false,first:null,intervals:[]})));this.extras=words.map(()=>new Set());this.omissions=words.map(()=>new Set());this.omittedErrors=0;this.status='idle';this.activeMs=0;this.lastStart=0;this.lastKey=null;this.lastCommitted=null;this.correctRegistrations=0;this.errorRegistrations=0;this.firstCorrect=0;this.firstCount=0;this.keyStats={};this.pairStats={};this.corrections=0;this.deleted=0;this.correctionMs=0;this.correctionStarted=null;this.hints=0;this.pauses=0;this.comparable=true;this.spaces=0;this.result=null;
  }
  start(){if(this.status==='idle'||this.status==='paused'){this.status='running';this.lastStart=this.now();this.lastKey=null;this.lastCommitted=null}}
  get duration(){return this.activeMs+(this.status==='running'?Math.max(0,this.now()-this.lastStart):0)}
@@ -208,7 +235,17 @@ export class TypingSession{
   this.values[this.word]=value;this.lastKey=now;if(added.length!==1||removed)this.lastCommitted=null;
   if(!this.options.spaceToFinish&&this.options.mode!=='time'&&this.word===this.words.length-1&&value.length>=this.words[this.word].length)this.finish();
  }
- nextWord(){this.tick();if(this.status==='finished'||!this.current.length)return;this.start();this.spaces++;this.lastCommitted=null;if(this.word===this.words.length-1){this.finish();return}this.word++;this.lastKey=this.now()}
+ nextWord(){this.tick();if(this.status==='finished')return;this.start();this.registerOmissions(this.word,true);this.spaces++;this.lastCommitted=null;if(this.word===this.words.length-1){this.finish();return}this.word++;this.lastKey=this.now()}
+ registerOmissions(word,complete){
+  const alignment=alignText(this.words[word],this.values[word]),last=alignment.ops.findLast(o=>o.type!=='missed'),end=complete?this.words[word].length:last?last.ref+(last.type==='extra'?0:1):0;
+  for(const op of alignment.ops){
+   if(op.type!=='missed'||op.ref>=end||this.omissions[word].has(op.ref))continue;
+   this.omissions[word].add(op.ref);this.omittedErrors++;this.errorRegistrations++;
+   const position=this.positions[word][op.ref];position.error=true;
+   if(position.first===null){position.first=false;this.firstCount++;}
+   const key=this.words[word][op.ref].toLowerCase(),stat=this.keyStats[key]??={observations:0,correct:0,errors:0,latencies:[]};stat.observations++;stat.errors++;
+  }
+ }
  backspace(){if(this.options.noWayBack||this.status==='finished')return;if(this.current.length)this.setValue(this.current.slice(0,-1));else if(this.word>0){this.word--;this.corrections++;this.lastKey=this.now();this.lastCommitted=null}}
  clearWord(){if(this.options.noWayBack||this.status==='finished')return;if(!this.current.length&&this.word>0)this.word--;if(this.current.length)this.setValue('');this.lastKey=this.now();this.lastCommitted=null}
  tick(){if(this.options.mode==='time'&&this.status==='running'&&this.duration>=this.options.seconds*1000)this.finish()}
@@ -217,10 +254,10 @@ export class TypingSession{
   for(let w=0;w<end;w++){let full=w<this.word||(this.status==='finished'&&this.options.mode!=='time'),original=this.words[w],typed=this.values[w],alignment=alignText(original,typed);let remaining=original.length;if(!full){let last=alignment.ops.findLast(o=>o.type!=='missed');remaining=last?last.ref+(last.type==='extra'?0:1):0;alignment.missed=alignment.ops.filter(o=>o.type==='missed'&&o.ref<remaining).length}expectedCount+=remaining;for(let key of Object.keys(counts))counts[key]+=alignment[key];if(full||(this.status==='finished'&&typed===original)){if(typed===original)correctWords++;else incorrectWords++}}
   for(let w=0;w<end-1;w++)if(this.values[w]===this.words[w])correctSpaces++;
   let correct=counts.correct+Math.min(this.spaces,correctSpaces),duration=this.duration,cpm=duration>0?correct/(duration/60000):0,total=this.correctRegistrations+this.errorRegistrations,attemptedFinal=counts.correct+counts.incorrect+counts.missed+counts.extra;
-  return{...counts,correct,cpm,wpm:cpm/5,outputCPM:duration?this.values.slice(0,end).reduce((s,v)=>s+v.length,Math.min(this.spaces,Math.max(0,end-1)))/(duration/60000):0,accuracy:total?this.correctRegistrations/total*100:100,firstAttemptAccuracy:this.firstCount?this.firstCorrect/this.firstCount*100:100,finalAccuracy:attemptedFinal?counts.correct/attemptedFinal*100:100,duration,correctWords,incorrectWords,errors:this.errorRegistrations,errorPositions:this.positions.slice(0,end).reduce((s,p)=>s+p.filter(i=>i.error).length,0),corrections:this.corrections,deleted:this.deleted,correctionMs:this.correctionMs,hints:this.hints,pauses:this.pauses,comparable:this.comparable,metricsVersion:3};
+  return{...counts,correct,cpm,wpm:cpm/5,outputCPM:duration?this.values.slice(0,end).reduce((s,v)=>s+v.length,Math.min(this.spaces,Math.max(0,end-1)))/(duration/60000):0,accuracy:total?this.correctRegistrations/total*100:100,firstAttemptAccuracy:this.firstCount?this.firstCorrect/this.firstCount*100:100,finalAccuracy:attemptedFinal?counts.correct/attemptedFinal*100:100,duration,correctWords,incorrectWords,errors:this.errorRegistrations,omittedErrors:this.omittedErrors,errorPositions:this.positions.slice(0,end).reduce((s,p)=>s+p.filter(i=>i.error).length,0),corrections:this.corrections,deleted:this.deleted,correctionMs:this.correctionMs,hints:this.hints,pauses:this.pauses,comparable:this.comparable,metricsVersion:3};
  }
  finish(){
-  if(this.status==='finished')return this.result;this.activeMs=this.options.mode==='time'?Math.min(this.duration,this.options.seconds*1000):this.duration;this.status='finished';let keys={};
+  if(this.status==='finished')return this.result;this.registerOmissions(this.word,this.options.mode!=='time');this.activeMs=this.options.mode==='time'?Math.min(this.duration,this.options.seconds*1000):this.duration;this.status='finished';let keys={};
   for(let [c,k] of Object.entries(this.keyStats)){let sorted=k.latencies.slice().sort((a,b)=>a-b),middle=sorted.length>>1;keys[c]={...k,avgMs:sorted.length?sorted.length%2?sorted[middle]:(sorted[middle-1]+sorted[middle])/2:null}}
   let end=Math.min(this.word+1,this.words.length),misspelled=[];
   for(let w=0;w<end;w++){let count=this.positions[w].filter(p=>p.error).length+this.extras[w].size;if(this.values[w]!==this.words[w]&&w<this.word)count=Math.max(1,count);for(let n=0;n<count;n++)misspelled.push(this.words[w])}

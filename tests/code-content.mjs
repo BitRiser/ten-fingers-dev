@@ -26,6 +26,7 @@ for(const track of Object.keys(CODE_TRACKS)){
   let previous=0;
   for(const volume of Object.keys(CODE_VOLUMES)){
    const item=codeExercise(track,index,volume);
+   assert(item.words.length>=CODE_VOLUMES[volume].min&&item.words.length<=CODE_VOLUMES[volume].max,'Actual code words fit the selected range');
    assert(item.words.length>previous,'Each tier extends its coherent algorithm');previous=item.words.length;
    assert.equal(item.words.join(' '),item.text.trim().split(/\s+/).join(' '));
    assert(item.words.every(w=>w.length<=80));assert([...item.text].every(c=>c==='\n'||findKey(c,'qwerty')));
