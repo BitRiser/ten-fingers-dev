@@ -29,6 +29,11 @@ export function letterSpeed(progress,letter,goal){
  const cpm=values.length?values.reduce((sum,value)=>sum+value,0)/values.length:0;
  return {cpm,count:values.length,percent:goal>0?Math.max(0,Math.min(100,cpm/goal*100)):0};
 }
+export const letterHue=percent=>Math.max(0,Math.min(120,(Number(percent)-60)*3||0));
+export function weakestLetter(progress,lang,goal){
+ const measured=[...LANGUAGES[lang].alphabet].slice(0,progress.unlocked).map(letter=>({letter,...letterSpeed(progress,letter,goal)})).filter(item=>item.count>0);
+ return measured.sort((a,b)=>a.cpm-b.cpm||b.count-a.count)[0]||null;
+}
 export function targetLetter(progress,lang,goal){let active=[...LANGUAGES[lang].alphabet].slice(0,progress.unlocked);return active.find(c=>!progress.letters[c]||progress.letters[c].samples<REQUIRED_SAMPLES)||active.reduce((a,c)=>confidence(progress.letters[c],goal)<confidence(progress.letters[a],goal)?c:a,active[0])}
 export function assessPractice(result,goal,letters){
  const floor=goal*SAMPLE_SPEED_RATIO,reasons=[],keys={},accepted=[];

@@ -18,3 +18,14 @@ const advanced=lessonMapMarkup(lessons,'qwerty');assert(advanced.includes('journ
 for(const group of route.groups)for(const step of group.steps)lessons[`qwerty:${step.group}:${step.step}`]={passed:true};
 route=lessonRoute(lessons,'qwerty');assert.equal(route.percent,100);assert.equal(route.next,null);assert.equal(route.completed,81);
 console.log('Passed: 81-stage lesson map, next/retry/locked states, saved progress, layout isolation and course completion.');
+
+const {lessonPath,chapterPath}=await import('../dist/lesson-map.mjs');
+for(const [from,to,width] of [[[60,46],[180,55],480],[[420,50],[420,150],480],[[300,41],[300,154],360]]){
+ const path=lessonPath(from,to),coords=path.match(/-?\d+(?:\.\d+)?/g).map(Number);
+ assert.deepEqual(coords.slice(0,2),from);assert.deepEqual(coords.slice(-2),to);
+ for(let i=0;i<coords.length;i+=2){assert(coords[i]>=0&&coords[i]<=width);assert(coords[i+1]>=0&&coords[i+1]<=208);}
+ assert(path.includes('C'),'soft curves between lesson nodes');
+}
+const connection=chapterPath([120,190],[180,320]).match(/-?\d+(?:\.\d+)?/g).map(Number);
+assert.deepEqual(connection.slice(0,2),[120,190]);assert.deepEqual(connection.slice(-2),[180,320]);
+assert(connection.filter((_,i)=>i%2===0).every(x=>x>=120&&x<=180),'chapter links remain between endpoints, not outside cards');

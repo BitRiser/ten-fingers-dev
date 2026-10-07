@@ -32,7 +32,7 @@ export const CODE_TRACKS={
     "description": "Потоки, STL, классы, шаблоны и современный C++."
   }
 };
-export const CODE_VOLUMES={short:{name:'Короткий',min:15,max:20},medium:{name:'Средний',min:20,max:30},long:{name:'Длинный',min:30,max:40}};
+export const CODE_VOLUMES={short:{name:'Короткий',min:8,max:12},medium:{name:'Средний',min:13,max:18},long:{name:'Длинный',min:19,max:25}};
 export function codeLines(text){
  let next=0;
  const lines=text.split('\n').map((source,index)=>{
@@ -66,7 +66,7 @@ export function codeExercise(track,index=0,volume='short'){
  const selected=((index%CODE_VARIANTS)+CODE_VARIANTS)%CODE_VARIANTS,template=Math.floor(selected/10),nameSet=selected%10;
  const source=CODE_TEMPLATES[track][template],names=identifierNames(track,nameSet);
  const text=source[volume].replace(/\{\{(\w+)\}\}/g,(_,role)=>{if(!names[role])throw new Error('Неизвестное имя: '+role);return names[role];});
- return{track,title:source.title,text,file:item.file,index:selected,template,nameSet,volume,...codeLines(text)};
+ return{track,title:source.titles?.[volume]||source.title,text,file:item.file,index:selected,template,nameSet,volume,...codeLines(text)};
 }
 const keywords=new Set('const let var function return if else for of in async await import export from type interface string number boolean public private class new and or not def True False None int void char float double unsigned signed size_t bool auto struct typedef sizeof while do switch case break continue static enum typename template include #include const; return; std::cout std::endl'.split(' '));
 export function codeTokenType(token){

@@ -126,3 +126,14 @@ for(const [lang,phrases] of Object.entries(PRACTICE_PHRASES)){
  for(const text of phrases){const words=text.split(' ');assert.equal(words.length,16);assert(words.every(w=>w.length>=2&&w.length<=8&&[...w].every(c=>LANGUAGES[lang].alphabet.includes(c))));}
  const a=practiceMaterial(lang,LANGUAGES[lang].alphabet,null,()=>.1),b=practiceMaterial(lang,LANGUAGES[lang].alphabet,null,()=>.1);assert.equal(a.type,'words');assert.equal(b.type,'words');assert.notDeepEqual(a.words,b.words,'Natural paragraphs alternate as letters become available');
 }
+
+const {letterHue,weakestLetter}=await import('../dist/core.mjs');
+for(const percent of [-20,0,25,59.99,60])assert.equal(letterHue(percent),0,'red through 60%');
+assert(letterHue(60.01)>0);assert.equal(letterHue(80),60);assert.equal(letterHue(100),120);assert.equal(letterHue(150),120);
+assert.equal(weakestLetter(createProgress(),'ru',goal),null,'unmeasured letters have no weakest rank');
+const measured=structuredClone(rolling);
+measured.history=measured.history.map(r=>({...r,keys:{о:r.keys.о}}));
+assert.equal(weakestLetter(measured,'ru',goal).letter,'о','unknown letters do not beat measured letters');
+assert.deepEqual(weakestLetter(measured,'ru',goal),{letter:'о',...letterSpeed(measured,'о',goal)});
+const failedOnly=createProgress();failedOnly.history=[{...allWrong,keys:{а:allWrong.keys.о,я:allWrong.keys.о}}];
+assert.equal(weakestLetter(failedOnly,'ru',goal).letter,'а','measured zero speed is included, locked letters excluded');

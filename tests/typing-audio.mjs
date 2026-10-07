@@ -47,3 +47,10 @@ for(const [id,path] of Object.entries(MEME_SAMPLES)){const file=await readFile(n
 console.log('Passed: neutral 100 ms vocal keys, shuffled complete final phrases without repeats, fade-out and replacement crossfade, one final per exercise, lazy/off/mute, switch profiles, bounded voices, shared loading, cancellation, failed loads, physical-key filtering, backups and trimmed WAV assets.');
 
 for(const path of Object.values(SWITCH_SAMPLES)){const file=await readFile(new URL(path.replace('./','../dist/'),import.meta.url));assert.equal(file.subarray(0,4).toString(),'RIFF');const duration=file.readUInt32LE(40)/file.readUInt32LE(28);assert(duration>.09&&duration<.3);assert.equal(file.readInt16LE(44),0);assert.equal(file.readInt16LE(file.length-2),0);}
+
+const manifest=JSON.parse(await readFile(new URL('../dist/audio/manifest.json',import.meta.url),'utf8'));
+assert.deepEqual(manifest.files.sort(),[...Object.values(SWITCH_SAMPLES),...Object.values(MEME_SAMPLES)].map(path=>path.split('/').at(-1)).sort(),'download manifest covers every configured audio asset');
+for(const name of manifest.files){const bytes=await readFile(new URL('../dist/audio/'+name,import.meta.url));assert.equal(bytes.subarray(0,4).toString(),'RIFF');assert.equal(bytes.subarray(8,12).toString(),'WAVE');assert(bytes.length>44);}
+class BlockedContext extends Context{constructor(){super();this.state='suspended';}async resume(){}}
+setting.soundMode='normal';const blocked=createTypingAudio({getSettings:()=>setting,AudioContext:BlockedContext});
+assert.equal((await blocked.preview()).ok,false,'suspended audio must not report successful playback');

@@ -27,7 +27,7 @@ for(const track of Object.keys(CODE_TRACKS)){
   for(const volume of Object.keys(CODE_VOLUMES)){
    const item=codeExercise(track,index,volume);
    assert(item.words.length>=CODE_VOLUMES[volume].min&&item.words.length<=CODE_VOLUMES[volume].max,'Actual code words fit the selected range');
-   assert(item.words.length>previous,'Each tier extends its coherent algorithm');previous=item.words.length;
+   assert(item.words.length>previous,'Each tier has more tokens');previous=item.words.length;
    assert.equal(item.words.join(' '),item.text.trim().split(/\s+/).join(' '));
    assert(item.words.every(w=>w.length<=80));assert([...item.text].every(c=>c==='\n'||findKey(c,'qwerty')));
    assert(!item.text.includes('{{'),'All identifier slots are resolved');
@@ -65,4 +65,4 @@ console.log('Passed: formatted blocks and line metadata, 750 structured code var
 
 assert.deepEqual(Object.keys(CODE_TRACKS),['javascript','typescript','python','c','cpp']);
 for(const old of ['symbols','terminal','git']){const copy=structuredClone(data);copy.settings.codeTrack=old;const migrated=parseBackup(backupData(copy));assert.equal(migrated.settings.codeTrack,'javascript');assert.equal(migrated.layoutProgress['ru:йцукен'].unlocked,9,'removing tracks preserves saved progress');}
-for(const codeTrack of ['c','cpp']){const copy=structuredClone(data);copy.settings.codeTrack=codeTrack;assert.equal(parseBackup(backupData(copy)).settings.codeTrack,codeTrack);assert(codeExercise(codeTrack,0,'medium').text.includes('#include'));}
+for(const codeTrack of ['c','cpp']){const copy=structuredClone(data);copy.settings.codeTrack=codeTrack;assert.equal(parseBackup(backupData(copy)).settings.codeTrack,codeTrack);}

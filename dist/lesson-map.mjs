@@ -12,10 +12,15 @@ export function lessonRoute(lessons,layout){
  })}));
  return{groups,next,completed,total:number,percent:Math.round(completed/number*100)};
 }
-function position(i,columns){const row=Math.floor(i/columns),column=row%2?columns-1-i%columns:i%columns;return[column*120+60,row*94+43];}
+function position(i,columns){const row=Math.floor(i/columns),column=row%2?columns-1-i%columns:i%columns;return[column*120+60,row*104+46+[0,9,-5,4][i%4]];}
+export function lessonPath(from,to){
+ const [x1,y1]=from,[x2,y2]=to,vertical=Math.abs(y2-y1)>50;
+ return vertical?`M${x1} ${y1} C${x1+28} ${y1+34} ${x2+28} ${y2-34} ${x2} ${y2}`:`M${x1} ${y1} C${x1+(x2-x1)*.42} ${y1-22} ${x1+(x2-x1)*.58} ${y2+22} ${x2} ${y2}`;
+}
+export function chapterPath(from,to){const [x1,y1]=from,[x2,y2]=to,bend=Math.max(24,(y2-y1)*.48);return `M ${x1} ${y1} C ${x1} ${y1+bend} ${x2} ${y2-bend} ${x2} ${y2}`;}
 function mapMarkup(steps,columns){
- const points=steps.map((_,i)=>position(i,columns)),height=Math.ceil(steps.length/columns)*94;
- return `<div class="route-map route-${columns}" style="--route-height:${height}px"><svg viewBox="0 0 ${columns*120} ${height}" aria-hidden="true" preserveAspectRatio="none">${points.slice(1).map(([x,y],i)=>{const [px,py]=points[i];return `<path class="route-edge ${steps[i].status==='done'?'traveled':''}" d="M${px} ${py} ${py===y?`L${x} ${y}`:`C${px} ${py+47} ${x} ${y-47} ${x} ${y}`}"/>`;}).join('')}</svg>${steps.map((node,i)=>{const [x,y]=points[i];return `<div class="route-stop ${node.status}" style="left:${x/(columns*120)*100}%;top:${y-21.5}px"><button class="route-node ${node.status}" data-group="${node.group}" data-step="${node.step}" ${node.status==='locked'?'disabled':''} ${node.status==='current'?'aria-current="step"':''} aria-label="Этап ${node.group+1}.${node.step+1}: ${esc(node.name)}${node.status==='done'?', пройден':node.status==='locked'?', пройди предыдущий этап':', следующий'}"><span>${node.status==='done'?'✓':node.step+1}</span>${node.status==='current'?'<i class="route-player" aria-hidden="true">⌨</i>':''}</button><small>${node.status==='current'?'Сейчас':node.status==='done'?'Пройдено':''}</small></div>`;}).join('')}</div>`;
+ const points=steps.map((_,i)=>position(i,columns)),height=Math.ceil(steps.length/columns)*104;
+ return `<div class="route-map route-${columns}" style="--route-height:${height}px"><svg viewBox="0 0 ${columns*120} ${height}" aria-hidden="true" preserveAspectRatio="none">${points.slice(1).map(([x,y],i)=>{const [px,py]=points[i];return `<path class="route-edge ${steps[i].status==='done'?'traveled':''}" d="${lessonPath([px,py],[x,y])}"/>`;}).join('')}</svg>${steps.map((node,i)=>{const [x,y]=points[i];return `<div class="route-stop ${node.status}" style="left:${x/(columns*120)*100}%;top:${y-21.5}px"><button class="route-node ${node.status}" data-group="${node.group}" data-step="${node.step}" ${node.status==='locked'?'disabled':''} ${node.status==='current'?'aria-current="step"':''} aria-label="Этап ${node.group+1}.${node.step+1}: ${esc(node.name)}${node.status==='done'?', пройден':node.status==='locked'?', пройди предыдущий этап':', следующий'}"><span>${node.status==='done'?'✓':node.step+1}</span>${node.status==='current'?'<i class="route-player" aria-hidden="true">⌨</i>':''}</button><small>${node.status==='current'?'Сейчас':node.status==='done'?'Пройдено':''}</small></div>`;}).join('')}</div>`;
 }
 function chapterMarkup(group,expanded=false){
  const done=group.steps.filter(s=>s.status==='done').length,current=group.steps.find(s=>s.status==='current');
@@ -52,9 +57,9 @@ export function connectLessonMap(root){
   for(const bridge of track.querySelectorAll('.route-bridge')){
    const from=track.querySelector(`[data-chapter="${bridge.dataset.fromChapter}"]`),to=track.querySelector(`[data-chapter="${bridge.dataset.toChapter}"]`),a=endpoint(from,true),b=endpoint(to,false);
    if(!a||!b||!visible(bridge))continue;
-   const ra=a.getBoundingClientRect(),rb=b.getBoundingClientRect(),x1=ra.left-box.left+ra.width/2,y1=ra.bottom-box.top,x2=rb.left-box.left,y2=rb.top-box.top+rb.height/2;
-   const lane=-18,path=document.createElementNS(ns,'path'),bend=18;
-   path.setAttribute('d',`M ${x1} ${y1} C ${x1+32} ${y1+7} ${x1+32} ${y1+32} ${x1} ${y1+32} L ${lane+bend} ${y1+32} Q ${lane} ${y1+32} ${lane} ${y1+32+bend} L ${lane} ${y2-bend} Q ${lane} ${y2} ${lane+bend} ${y2} L ${x2} ${y2}`);
+   const ra=a.getBoundingClientRect(),rb=b.getBoundingClientRect(),x1=ra.left-box.left+ra.width/2,y1=ra.bottom-box.top,x2=rb.left-box.left+rb.width/2,y2=rb.top-box.top;
+   const path=document.createElementNS(ns,'path');
+   path.setAttribute('d',chapterPath([x1,y1],[x2,y2]));
    path.setAttribute('class','route-edge chapter-link'+(bridge.classList.contains('traveled')?' traveled':''));path.dataset.fromChapter=bridge.dataset.fromChapter;path.dataset.toChapter=bridge.dataset.toChapter;svg.append(path);
   }
  }

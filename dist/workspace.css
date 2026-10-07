@@ -84,7 +84,7 @@ body[data-view=stats] #header{margin-bottom:20px}body[data-view=stats] footer{ma
 .letter-speed{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:55px;overflow:hidden;border:1px solid color-mix(in srgb,hsl(var(--letter-hue) 64% 56%) 45%,var(--line));border-radius:5px;color:hsl(var(--letter-hue) 64% 65%);background:color-mix(in srgb,hsl(var(--letter-hue) 64% 50%) 8%,var(--panel))}
 .letter-speed b{font-size:17px;font-weight:500}.letter-speed span{font-size:9px}.letter-speed i{position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--line)}.letter-speed i:after{content:'';display:block;height:100%;width:var(--letter-speed);background:hsl(var(--letter-hue) 64% 56%)}
 .letter-speed.target-letter{outline:2px solid var(--accent);outline-offset:2px}.letter-speed.closed{border-color:var(--line);color:var(--muted);background:var(--panel);opacity:.55}.letter-speed.closed i{display:none}.letter-speed.closed b{font-size:15px}
-.letter-scale-legend{display:flex;justify-content:space-between;gap:10px;font-size:9px;color:var(--muted);margin-top:10px}.letter-scale-legend>span:first-child{display:flex;gap:8px;align-items:center}.letter-scale-legend i{display:inline-block;width:60px;height:4px;border-radius:3px;background:linear-gradient(90deg,#e85c5c,#ddb951,#64bf61)}
+.letter-scale-legend{display:flex;justify-content:space-between;gap:10px;font-size:9px;color:var(--muted);margin-top:10px}.letter-scale-legend>span:first-child{display:flex;gap:8px;align-items:center}.letter-scale-legend i{display:inline-block;width:60px;height:4px;border-radius:3px;background:linear-gradient(90deg,#e85c5c 0%,#e85c5c 60%,#ddb951 80%,#64bf61 100%)}
 body[data-theme=light] .letter-speed,body[data-theme=warm] .letter-speed{color:hsl(var(--letter-hue) 70% 32%)}
 /* Extra input stays inside the row and cannot be clipped above the viewport. */
 
@@ -110,3 +110,20 @@ body[data-theme=light] .letter-speed,body[data-theme=warm] .letter-speed{color:h
 .preview-time{height:3px;margin-top:18px;border-radius:2px;background:var(--accent);transform-origin:left;animation:preview-time 2s linear forwards}@keyframes preview-time{to{transform:scaleX(0)}}
 .code-volume-bar button small{display:block;font-size:10px;opacity:.65;margin-top:3px}.preview-code{white-space:pre;text-wrap:initial}
 @media(prefers-reduced-motion:reduce){.preview-time{animation:none}}
+
+.weakest-summary{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:15px 0 4px;color:var(--muted);font-size:11px}.weakest-summary b{color:var(--text);font-size:15px;margin:0 3px}.weakest-summary button{color:var(--accent);font-size:10px;padding:7px 10px;border:1px solid var(--line);border-radius:6px}.letter-speed.weakest-letter:before{content:"↓";position:absolute;right:4px;top:1px;font-size:11px;color:var(--text)}
+
+/* One continuous landscape: chapter labels divide the route without separate boxes. */
+.journey-track{padding:18px 22px;border:1px solid var(--line);border-radius:18px;background:var(--panel);overflow:hidden}
+.journey-track .journey-chapter{border:0;border-radius:0;background:transparent;box-shadow:none}
+.journey-track .journey-chapter>summary{background:var(--panel);border-radius:12px;padding-left:4px;padding-right:4px}
+.journey-track .chapter-route{padding-bottom:4px}.journey-track .chapter-route>p{position:relative;z-index:3;background:var(--panel);display:table;padding:3px 8px;border-radius:5px}
+.journey-links{z-index:1;overflow:hidden}.journey-track .route-map>svg{overflow:hidden}.journey-track .route-edge{stroke-width:3;stroke-dasharray:1 9;stroke:color-mix(in srgb,var(--muted) 50%,transparent)}
+.journey-track .route-edge.traveled{stroke:var(--accent);stroke-dasharray:none;opacity:.6}.journey-track .chapter-link{stroke-width:2.5;opacity:.55}.journey-track .route-bridge{height:12px}
+.journey-track .route-node{box-shadow:0 0 0 7px var(--panel)}.journey-track .route-node.current{box-shadow:0 0 0 6px var(--panel),0 0 0 8px color-mix(in srgb,var(--accent) 35%,transparent)}
+.journey-track .journey-fold>summary,.journey-section-label{position:relative;z-index:3;background:var(--panel)}
+
+.keyboard-sound-toolbar{gap:10px;flex-wrap:wrap}.enable-sound[hidden]{display:none}.enable-sound{font-size:12px;white-space:nowrap}
+.journey-track .journey-chapter>summary{background:transparent;border-bottom:0}
+.journey-track .chapter-title,.journey-track .chapter-score{position:relative;z-index:3;background:var(--panel);border-radius:5px}
+.journey-track .chapter-title{padding:4px 8px;margin-left:-8px}
