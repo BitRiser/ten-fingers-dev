@@ -1,6 +1,6 @@
 import {keyBox,center} from './mac-geometry.mjs';
 export const HOME_COLUMNS=[0,1,2,3,6,7,8,9];
-export const BASES=[[115,310],[165,329],[215,339],[265,325],[415,325],[465,339],[515,329],[565,310]];
+export const BASES=[[90,310],[140,329],[190,339],[242,325],[438,325],[490,339],[540,329],[590,310]];
 export const LENGTHS=[[80,57,36],[86,63,41],[92,68,44],[87,64,41],[87,64,41],[92,68,44],[86,63,41],[80,57,36]];
 const ROOT_HEIGHT=30;
 export const homePoint=i=>center(keyBox(1,HOME_COLUMNS[i]));
@@ -42,14 +42,15 @@ export function strokePhase(elapsed){
 }
 export function interpolatePose(from,to,amount){const yaw=Math.atan2(Math.sin(to.yaw-from.yaw),Math.cos(to.yaw-from.yaw));return{yaw:from.yaw+yaw*amount,pitch:from.pitch+(to.pitch-from.pitch)*amount,flex:from.flex+(to.flex-from.flex)*amount};}
 export function fingerOutline(points,index){
- const widths=index===0||index===7?[16,15,13,11.5]:index===8?[22,18,14]:[20,18,15.5,13];
+ const widths=index===0||index===7?[18,17,16,14.5]:index===8?[26,22,18]:[24,22,20,17];
  const before=points[0],tip=points.at(-1),dx=tip[0]-before[0],dy=tip[1]-before[1],length=Math.hypot(dx,dy)||1,nx=-dy/length,ny=dx/length,p=a=>a.map(n=>n.toFixed(2)).join(' ');
  const side=sign=>points.map((point,i)=>[point[0]+nx*widths[i]*sign,point[1]+ny*widths[i]*sign]);
  const a=side(1),b=side(-1),mid=(x,y)=>[(x[0]+y[0])/2,(x[1]+y[1])/2];
  const flank=arr=>arr.slice(1,-1).map((point,i)=>`Q${p(point)} ${p(mid(point,arr[i+2]))}`).join(' ')+` L${p(arr.at(-1))}`;
  const cap=[tip[0]+dx/length*widths.at(-1),tip[1]+dy/length*widths.at(-1)];
  const rootCap=[before[0]-dx/length*widths[0]*.6,before[1]-dy/length*widths[0]*.6];
- return`M${p(a[0])} ${flank(a)} Q${p(cap)} ${p(b.at(-1))} ${flank(b.slice().reverse())} Q${p(rootCap)} ${p(a[0])} Z`;
+ const capA=[a.at(-1)[0]+dx/length*widths.at(-1)*1.33,a.at(-1)[1]+dy/length*widths.at(-1)*1.33],capB=[b.at(-1)[0]+dx/length*widths.at(-1)*1.33,b.at(-1)[1]+dy/length*widths.at(-1)*1.33];
+ return`M${p(a[0])} ${flank(a)} C${p(capA)} ${p(capB)} ${p(b.at(-1))} ${flank(b.slice().reverse())} Q${p(rootCap)} ${p(a[0])} Z`;
 }
 export function crease(points,index,joint){
  const c=points[joint],before=points[joint-1],after=points[joint+1],dx=after[0]-before[0],dy=after[1]-before[1],length=Math.hypot(dx,dy)||1,w=index===0||index===7?9:12,nx=-dy/length,ny=dx/length,p=a=>a.map(n=>n.toFixed(2)).join(' ');

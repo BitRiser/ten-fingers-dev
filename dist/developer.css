@@ -710,3 +710,51 @@ body.typing-focus .focus-controls button{position:fixed;top:18px;right:24px;z-in
 .test-option-symbol{font-size:10px;margin-right:6px;opacity:.75}
 .test-result-content{color:var(--muted);font-size:12px;margin:-12px 0 20px}
 @media(max-width:560px){.test-mode-row,.test-content-row{gap:10px}.test-content-row>span{width:100%}.test-content-row .segmented{width:100%;flex-wrap:nowrap}.test-content-row .segmented button{flex:1;padding:8px 6px;white-space:nowrap}.test-option-symbol{margin-right:4px}.test-content-note{line-height:1.7}}
+
+/* Larger centered keyboard, with one calm hand contour per side. */
+.keyboard-wrap.mac-keyboard{width:100%;max-width:960px;margin:28px auto 0}
+.mac-keyboard .keyboard-svg{width:100%;margin:0 auto}
+.mac-keyboard .hands-layer{opacity:1;mask:none}
+.mac-keyboard .hand-silhouette{fill:var(--hand-fill);fill-opacity:.08;stroke:color-mix(in srgb,var(--muted) 70%,var(--text));stroke-opacity:.8;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.mac-keyboard :is(.finger-skin,.joint-crease,.joint-pad,.fingernail,.dorsal-tendon){display:none}
+.mac-keyboard .finger-edge{fill:none;stroke:none;filter:none}
+.mac-keyboard .active-finger .finger-edge{stroke:#5d9ff9;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.mac-keyboard .thumb-skin{fill:none;stroke:none;filter:none}
+.mac-keyboard .active-thumb .thumb-skin{stroke:#5d9ff9;stroke-width:2.6;vector-effect:non-scaling-stroke}
+/* Source lines retain indentation and line numbers; narrow screens wrap long lines. */
+.code-exercise .stage{padding:35px 18px 10px;--editor-font-size:clamp(16px,1.5vw,21px)}
+.code-exercise .line-gutter{display:none}
+.code-exercise .words.code-lines{font-size:var(--editor-font-size);line-height:1.8;letter-spacing:0;white-space:normal;overflow:visible;width:100%;min-height:120px}
+.code-source-line{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;min-height:1.8em;border-radius:3px;padding:0 8px 0 0}
+.code-line-number{font-size:11px;color:var(--muted);opacity:.5;text-align:right;user-select:none;line-height:calc(var(--editor-font-size)*1.8)}
+.code-line-body{display:block;padding-left:calc(var(--indent)*1ch);white-space:pre-wrap;overflow-wrap:anywhere}
+.code-lines .word{display:inline;white-space:normal;margin:0;padding:0;line-height:inherit}
+.code-lines .word-extras{font-size:9px}
+.code-source-line.active-code-line{background:color-mix(in srgb,var(--accent) 4%,transparent)}
+.code-source-line.active-code-line .code-line-number{opacity:1;color:var(--accent)}
+.code-exercise .start-overlay{inset:36px 16px 0 16px}
+.code-exercise .typing-input:not(.visible){left:64px;width:calc(100% - 82px)}
+.stats-intro{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.stats-intro h2{font-size:25px;color:var(--text)}
+.stats-intro p{font-size:13px;color:var(--muted);margin-top:7px}
+.stats-profile-note,.stats-section-note{color:var(--muted);font-size:11px;line-height:1.8;margin-top:10px;max-width:850px}
+.explained-stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:23px 0}
+.explained-stats article{padding:20px;border:1px solid var(--line);background:var(--panel);border-radius:9px}
+.explained-stats h3{font-size:11px;letter-spacing:0;color:var(--text);margin-bottom:14px}
+.explained-stats strong{display:block;font-size:32px;font-weight:500;line-height:1.3;color:var(--accent)}
+.explained-stats span{font-size:10px;color:var(--muted)}
+.explained-stats p{font-size:10px;color:var(--muted);line-height:1.8;margin-top:13px}
+.stats-glossary{display:grid;grid-template-columns:1fr 1fr;gap:18px 28px;border:1px solid var(--line);border-radius:9px;padding:20px}
+.stats-glossary b{font-size:12px;font-weight:500;color:var(--text)}
+.stats-glossary p{color:var(--muted);font-size:11px;line-height:1.8;margin-top:6px}
+.stats-glossary button{justify-self:start;grid-column:1/-1;color:var(--accent);font-size:11px}
+.stats-chart .history-chart{margin-top:18px}
+.stats-details{margin-top:30px;border:1px solid var(--line);border-radius:8px;padding:16px 20px}
+.stats-details>summary{font-size:12px;cursor:pointer;color:var(--text)}
+.stats-details .stat-section{margin-top:23px}
+@media(max-width:1000px){.explained-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.keyboard-wrap.mac-keyboard{width:calc(100% + 16px);max-width:none;margin:24px -8px 0}.code-exercise .stage{padding:35px 7px 10px;--editor-font-size:16px}.code-source-line{grid-template-columns:24px minmax(0,1fr);gap:8px}.code-line-number{font-size:9px}.code-exercise .typing-input:not(.visible){left:39px;width:calc(100% - 48px)}.stats-intro h2{font-size:23px}.explained-stats{gap:9px}.explained-stats article{padding:15px}.explained-stats strong{font-size:26px}.stats-glossary{grid-template-columns:1fr;padding:17px;gap:18px}.stats-details{padding:15px}.stats-profile-note{font-size:10px}}
+
+.mac-keyboard .keyboard-svg{overflow:hidden}
+
+.explained-stats p{font-size:11px}.explained-stats h3{font-size:12px}
