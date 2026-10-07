@@ -1,6 +1,7 @@
 import {LANGUAGES,DEFAULT_SETTINGS,LESSON_GROUPS,mapPhysicalKeys} from './data.mjs';
 import {EXTRA_WORDS} from './vocabulary.mjs';
-export const PRACTICE_POLICY=2, SAMPLE_SPEED_RATIO=.7, SAMPLE_ACCURACY=95, REQUIRED_SAMPLES=3;
+export const PRACTICE_POLICY=3, SAMPLE_SPEED_RATIO=.7, SAMPLE_ACCURACY=85, REQUIRED_SAMPLES=3;
+export const lessonThreshold=ctx=>({cpm:ctx.step===0?0:ctx.step<3?60:120,accuracy:SAMPLE_ACCURACY});
 export function createProgress(){return {unlocked:5,letters:{},history:[],lessons:{},lessonHistory:[],tests:[],samplePolicy:PRACTICE_POLICY}}
 export function confidence(key,goal){
  if(!key||key.samples<REQUIRED_SAMPLES||!key.lastQualified||key.lastAccuracy<SAMPLE_ACCURACY||!Number.isFinite(goal)||goal<=0)return 0;
@@ -52,11 +53,15 @@ function recordPracticeKeys(progress,assessment){
 export function ensurePracticeProgress(progress,lang,goal){
  if(progress.samplePolicy===PRACTICE_POLICY)return progress;
  // Reassess old samples; keep the user's history and already available letters.
+ const trusted=progress.samplePolicy===2?progress.letters:null,newly={};
  progress.letters={};const seen=new Set(),letters=[...LANGUAGES[lang].alphabet].slice(0,progress.unlocked);
  for(const result of progress.history){
   if(result.sessionId&&seen.has(result.sessionId))continue;if(result.sessionId)seen.add(result.sessionId);
-  recordPracticeKeys(progress,assessPractice(result,result.practiceSample?.goal||goal,letters));
+  const assessment=assessPractice(result,result.practiceSample?.goal||goal,letters);
+  if(trusted)for(const c of assessment.accepted)if(result.practiceSample? !result.practiceSample.accepted?.includes(c): result.accuracy<95||result.firstAttemptAccuracy<95||assessment.keys[c].accuracy<95)newly[c]=(newly[c]||0)+1;
+  recordPracticeKeys(progress,assessment);
  }
+ if(trusted)for(const [c,old] of Object.entries(trusted)){const key=progress.letters[c]??={...old};key.samples=Math.max(key.samples||0,(old.samples||0)+(newly[c]||0));key.topCPM=Math.max(key.topCPM||0,old.topCPM||0);}
  progress.samplePolicy=PRACTICE_POLICY;return progress;
 }
 export function savePractice(progress,result,lang,goal){
@@ -79,9 +84,22 @@ const randomIndex=(length,random)=>Math.min(length-1,Math.max(0,Math.floor((Numb
 export function keyDrills(letters,count=25,random=Math.random){
  const chars=[...new Set(letters)];if(!chars.length)throw new Error('Для упражнения нужны доступные клавиши.');
  const patterns=[];
- for(let i=0;i<chars.length;i++){for(let j=i+1;j<chars.length;j++){patterns.push(chars[i]+chars[j],chars[j]+chars[i]);}patterns.push(chars[i]+chars[i]);}
- const start=randomIndex(patterns.length,random);
- return Array.from({length:count},(_,i)=>patterns[(start+i)%patterns.length]);
+ for(let i=0;i<chars.length;i++){
+  for(let j=i+1;j<chars.length;j++){
+   const a=chars[i],b=chars[j];patterns.push(a+b,b+a,a+b+a,b+a+b,a+a+b+b,a+b+a+b);
+  }
+  patterns.push(chars[i]+chars[i]);
+ }
+ const words=[];let bag=[];
+ while(words.length<count){
+  if(!bag.length){
+   bag=[...patterns];
+   for(let i=bag.length-1;i>0;i--){const j=randomIndex(i+1,random);[bag[i],bag[j]]=[bag[j],bag[i]];}
+   if(bag.length>1&&bag.at(-1)===words.at(-1))[bag[0],bag[bag.length-1]]=[bag.at(-1),bag[0]];
+  }
+  words.push(bag.pop());
+ }
+ return words;
 }
 export function generateWords({lang='ru',letters=LANGUAGES[lang].alphabet,focus=null,count=25,random=Math.random,punctuation=false,focusFraction=.5}){
  if(!Number.isInteger(count)||count<1||count>10000)throw new Error('Количество слов должно быть от 1 до 10000.');
@@ -124,9 +142,15 @@ export function syllableWords(lang,letters,focus,random=Math.random){
   let state=(seed+Math.imul(attempt+1,2654435761))>>>0;
   const pick=n=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return Math.floor(state/4294967296*n);};
   let word=pick(4)===0?vowels[pick(vowels.length)]:'';
-  const length=2+pick(3);for(let i=0;i<length;i++)word+=syllables[pick(syllables.length)];
+  const length=2+pick(3);
+  for(let i=0;i<length;i++){
+   const cv=syllables[pick(syllables.length)];
+   // CV, closed syllables, and an occasional vowel onset make different rhythms.
+   word+=cv;
+   if(pick(5)===0&&i<length-1)word+=consonants[pick(consonants.length)];
+  }
   if(pick(3)===0)word+=consonants[pick(consonants.length)];
-  if(word.length<4||word.length>10||/(.)\1\1/u.test(word))continue;
+  if(word.length<4||word.length>12||/(.)\1\1/u.test(word))continue;
   if(focus&&allowed.includes(focus)&&attempt%2===0&&!word.includes(focus))continue;
   words.add(word);
  }

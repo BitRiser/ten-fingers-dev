@@ -672,11 +672,17 @@ body.typing-focus .focus-controls button{position:fixed;top:18px;right:24px;z-in
 /* Larger centered keyboard, with one calm hand contour per side. */
 .keyboard-wrap.mac-keyboard{width:100%;max-width:960px;margin:28px auto 0}
 .mac-keyboard .keyboard-svg{width:100%;margin:0 auto}
-.mac-keyboard .hands-layer{opacity:1;mask:none}
-.mac-keyboard .hand-silhouette{fill:var(--hand-fill);fill-opacity:.08;stroke:color-mix(in srgb,var(--muted) 70%,var(--text));stroke-opacity:.8;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
-.mac-keyboard :is(.finger-skin,.joint-crease,.joint-pad,.fingernail,.dorsal-tendon){display:none}
+.mac-keyboard .hands-layer{opacity:.86;mask:url(#handOpacityMask)}
+/* A single hand contour, with restrained anatomical details over the keys. */
+.mac-keyboard .hands-layer{opacity:.86}
+.mac-keyboard .hand-silhouette{fill:var(--hand-fill);fill-opacity:.18;stroke:color-mix(in srgb,var(--hand-fill) 75%,var(--text));stroke-opacity:.8;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.mac-keyboard .finger-skin,.mac-keyboard .thumb-skin{display:none}
+.mac-keyboard .joint-crease{display:block;stroke:var(--text);stroke-opacity:.22;stroke-width:1;fill:none}
+.mac-keyboard .joint-pad{display:none}
+.mac-keyboard .fingernail{display:block;fill:var(--hand-fill);fill-opacity:.18;stroke:var(--text);stroke-opacity:.32;stroke-width:1}
 .mac-keyboard .finger-edge{fill:none;stroke:none;filter:none}
-.mac-keyboard .active-finger .finger-edge{stroke:#5d9ff9;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.mac-keyboard .active-finger .finger-edge{stroke:#5d9ff9;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+
 .mac-keyboard .thumb-skin{fill:none;stroke:none;filter:none}
 .mac-keyboard .active-thumb .thumb-skin{stroke:#5d9ff9;stroke-width:2.6;vector-effect:non-scaling-stroke}
 /* Source lines retain indentation and line numbers; narrow screens wrap long lines. */
@@ -716,3 +722,5 @@ body.typing-focus .focus-controls button{position:fixed;top:18px;right:24px;z-in
 .mac-keyboard .keyboard-svg{overflow:hidden}
 
 .explained-stats p{font-size:11px}.explained-stats h3{font-size:12px}
+
+.mac-keyboard .palm-detail{fill:none;stroke:var(--text);stroke-opacity:.12;stroke-width:1;stroke-linecap:round}

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {LANGUAGES} from '../dist/data.mjs';
 import {TypingSession,createProgress,savePractice,confidence,ensurePracticeProgress,loadData,assessPractice} from '../dist/core.mjs';
 import {ensureLearning,progressFor,parseBackup,backupData} from '../dist/learning.mjs';
-import {ProgressStore,STORAGE_KEY} from '../dist/progress-store.mjs';
+import {ProgressStore,STORAGE_KEY,applyCompletion} from '../dist/progress-store.mjs';
 const alphabet=LANGUAGES.ru.alphabet.slice(0,5),goal=250;
 const words=['она','они','неон','ион','анна','неон'];
 function typeExercise(mode='correct',interval=240){
@@ -42,12 +42,26 @@ assert.equal(p.unlocked,6);
 const three=createProgress();for(let i=0;i<2;i++)savePractice(three,withSpeed(250),'ru',goal);assert.equal(three.unlocked,5);assert.ok(Object.values(three.letters).every(k=>confidence(k,goal)===0));
 assert.equal(savePractice(three,withSpeed(250),'ru',goal),LANGUAGES.ru.alphabet[5]);assert.equal(three.unlocked,6);
 // Very fast transitions and good final text cannot compensate for poor input accuracy.
-for(const changes of [{accuracy:94.999},{firstAttemptAccuracy:94.999},{incorrectWords:1,correctWords:5},{finalAccuracy:99.99}]){
+for(const changes of [{accuracy:84.999},{firstAttemptAccuracy:84.999},{incorrectWords:1,correctWords:5},{finalAccuracy:99.99}]){
  const q=createProgress();for(let i=0;i<8;i++)savePractice(q,withSpeed(3000,changes),'ru',goal);
  assert.equal(q.unlocked,5);assert.ok(Object.values(q.letters).every(k=>k.samples===0));
 }
-const atAccuracy=assessPractice(withSpeed(250,{accuracy:95,firstAttemptAccuracy:95}),goal,alphabet);
-assert.equal(atAccuracy.accepted.length,5,'Exactly 95% qualifies when all words are corrected');
+const atAccuracy=assessPractice(withSpeed(250,{accuracy:85,firstAttemptAccuracy:85}),goal,alphabet);
+assert.equal(atAccuracy.accepted.length,5,'Exactly 85% qualifies when all words are corrected');
+// The 95 -> 85 migration preserves trusted samples, unlocks, and history.
+const lowerThreshold={...createProgress(),samplePolicy:2,unlocked:7,letters:{о:{samples:17,topCPM:250}},history:[withSpeed(250,{accuracy:90,firstAttemptAccuracy:90,practiceSample:{goal:250,accepted:[]}})]};
+ensurePracticeProgress(lowerThreshold,'ru',goal);assert.equal(lowerThreshold.letters.о.samples,18);assert.equal(lowerThreshold.unlocked,7);
+ensurePracticeProgress(lowerThreshold,'ru',goal);assert.equal(lowerThreshold.letters.о.samples,18,'Migration cannot add the same new sample twice');
+// Lessons use the same exact threshold and cannot pass by skipping text.
+const lessonData=ensureLearning(loadData({getItem:()=>null})),lessonContext={kind:'lesson',lang:'ru',layout:'йцукен',id:'йцукен:0:3',step:3};
+for(const accuracy of [84.999,85,85]){
+ const result=withSpeed(120,{accuracy,firstAttemptAccuracy:accuracy,finalAccuracy:accuracy});
+ applyCompletion(lessonData,result,lessonContext);assert.equal(result.lessonSuccess,accuracy>=85);
+}
+assert.equal(progressFor(lessonData,'ru','йцукен').lessons[lessonContext.id].passed,true);
+for(const [field,value] of [['finalAccuracy',84.999],['firstAttemptAccuracy',0],['cpm',119.999]]){
+ const result=withSpeed(120,{[field]:value});applyCompletion(lessonData,result,{...lessonContext,id:field});assert.equal(result.lessonSuccess,false);
+}
 const fastKeys=Object.fromEntries(Object.entries(correct.keys).map(([c,k])=>[c,{...k,avgMs:20,latencies:[20,20]}]));
 const capped=createProgress();for(let i=0;i<5;i++)savePractice(capped,withSpeed(175,{keys:fastKeys}),'ru',goal);
 assert.equal(capped.unlocked,5);assert.ok(Object.values(capped.letters).every(k=>k.lastCPM===175),'Per-letter speed never exceeds the complete exercise');
@@ -67,7 +81,7 @@ const legacy={...createProgress(),samplePolicy:undefined,unlocked:7,letters:{о:
 ensurePracticeProgress(legacy,'ru',goal);assert.equal(legacy.unlocked,7);assert.equal(legacy.history.length,2);assert.equal(legacy.letters.о.samples,1);
 ensurePracticeProgress(legacy,'ru',goal);assert.equal(legacy.letters.о.samples,1);
 const older={version:2,progress:{ru:{...legacy,samplePolicy:undefined}}};
-const loaded=ensureLearning(loadData({getItem:key=>key===STORAGE_KEY?JSON.stringify(older):null}));assert.equal(loaded.progress.ru.samplePolicy,2);assert.equal(loaded.progress.ru.letters.о.samples,1);
+const loaded=ensureLearning(loadData({getItem:key=>key===STORAGE_KEY?JSON.stringify(older):null}));assert.equal(loaded.progress.ru.samplePolicy,3);assert.equal(loaded.progress.ru.letters.о.samples,1);
 assert.doesNotThrow(()=>parseBackup(backupData(loaded)));
 for(const edit of [k=>k.samples=.5,k=>k.lastCPM=-1,k=>k.lastAccuracy=101,k=>k.lastQualified='yes']){const bad=structuredClone(loaded);edit(bad.progress.ru.letters.о);assert.throws(()=>parseBackup(backupData(bad)));}
 // Durable writes, retry, and backup preserve the new assessment and immutable session goal.
@@ -77,7 +91,7 @@ const ctx={kind:'practice',lang:'ru',layout:'йцукен',rules:{speedGoal:250}
 await store.complete(attempt,ctx);await store.complete(attempt,ctx);
 const saved=parseBackup(backupData(JSON.parse(values.get(STORAGE_KEY)))),profile=progressFor(saved,'ru','йцукен');
 assert.equal(profile.history.length,1);assert.equal(profile.history[0].practiceSample.floor,175);assert.ok(Object.values(profile.letters).every(k=>k.samples===1));
-console.log('Passed: wrong-key spam, skipped words, correction spam, exact 70%/95% gates, full-goal unlock, unrounded boundary, per-key accuracy, bounded speed, minimum observations, history migration, idempotence, durable storage and backup.');
+console.log('Passed: wrong-key spam, skipped words, correction spam, exact 70%/85% gates, full-goal unlock, unrounded boundary, per-key accuracy, bounded speed, minimum observations, history migration, idempotence, durable storage and backup.');
 // Letter colors use a rolling mean across the last five distinct attempts.
 const rolling=createProgress();
 for(const cpm of [10,100,150,200,250,300])savePractice(rolling,withSpeed(cpm),'ru',goal);

@@ -32,6 +32,23 @@ for(let step=0;step<=100;step++){
 }
 console.log('Passed: all layouts, 78-key Mac ANSI geometry, exact fingertip alignment, fixed 3D phalanges throughout motion, palm attachment, articulated thumb.');
 
+// Row changes move the whole palm before fingers finish their reach.
+for(const char of ['q','z','1','p','/','0']){
+ const key=findKey(char,'qwerty'),offset=handOffset(key);
+ assert(Math.hypot(...offset)>3,'Nearby as well as distant row changes move the palm');
+}
+for(let i=0;i<8;i++){
+ assert(LENGTHS[i].reduce((sum,x)=>sum+x,0)<140,'Human finger length remains proportional to the palm');
+ // Every intermediate point is bounded when a fast typist changes from the
+ // number row to a low key before the palm has caught up.
+ for(let shift=-100;shift<=80;shift+=5){
+  const pose=jointPose(i,[homePoint(i)[0]+35,homePoint(i)[1]+shift],8),points=posePoints(i,pose);
+  assert(Math.abs(pose.yaw+Math.PI/2)<=.501,'No backwards finger or extreme sideways splay');
+  assert(points.every(p=>p.every(Number.isFinite)));
+  assert(points.slice(1).every((p,j)=>p[1]<points[j][1]),'All phalanges point toward the keys, rather than folding into the palm');
+ }
+}
+
 for(let i=0;i<8;i++)for(let ms=0;ms<=240;ms+=4){const home=jointPose(i,homePoint(i),12),key={row:2,col:i<4?i:i+2,finger:i},offset=handOffset(key),goal=jointPose(i,keyPoint(key).map((v,a)=>v-offset[a])),phase=strokePhase(ms),points=posePoints(i,interpolatePose(home,goal,phase.amount));assert(points.every(p=>p.every(Number.isFinite)));for(let bone=0;bone<3;bone++)assert(Math.abs(Math.hypot(...points[bone+1].map((p,a)=>p-points[bone][a]))-LENGTHS[i][bone])<1e-8);}
 assert.equal(strokePhase(0).amount,0);assert.equal(strokePhase(45).amount,1);assert.equal(strokePhase(100).contact,true);assert.equal(strokePhase(240).amount,0);assert.equal(strokePhase(240).done,true);
 assert.deepEqual(hintKeys(null),[]);assert.deepEqual(hintKeys(findKey(' ','qwerty')),[]);

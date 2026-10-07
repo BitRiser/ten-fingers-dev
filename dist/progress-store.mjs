@@ -1,4 +1,4 @@
-import {loadData,savePractice} from './core.mjs';
+import {loadData,savePractice,lessonThreshold} from './core.mjs';
 import {ensureLearning,progressFor,learningFor,mergeSkills,parseBackup,backupData} from './learning.mjs';
 import {mergeOnboarding} from './onboarding.mjs';
 export const STORAGE_KEY='ten-fingers-v2';
@@ -31,7 +31,7 @@ export function applyCompletion(data,result,context){
  const progress=progressFor(data,context.lang,context.layout);let opened=null;
  if(context.kind==='practice')opened=savePractice(progress,result,context.lang,context.rules.speedGoal);
  else if(context.kind==='lesson'){
-  const old=progress.lessons[context.id],cpm=context.step===0?0:context.step<3?60:120,success=result.cpm>=cpm&&result.accuracy>=95,streak=success?(old?.streak||0)+1:0;
+  const old=progress.lessons[context.id],threshold=lessonThreshold(context),success=Number.isFinite(result.cpm)&&result.cpm>=threshold.cpm&&result.accuracy>=threshold.accuracy&&result.finalAccuracy>=threshold.accuracy&&result.firstAttemptAccuracy>=threshold.accuracy,streak=success?(old?.streak||0)+1:0;
   result.lessonSuccess=success;result.lessonStreak=streak;result.passed=!!old?.passed||streak>=2;
   progress.lessons[context.id]={...result,streak,attempts:(old?.attempts||0)+1};progress.lessonHistory??=[];progress.lessonHistory.push(result);progress.lessonHistory=progress.lessonHistory.slice(-1000);
  }else if(context.kind==='test'){progress.tests.push(result);progress.tests=progress.tests.slice(-1000);}

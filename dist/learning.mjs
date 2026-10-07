@@ -1,8 +1,9 @@
+import {EXTRA_TEXTS} from './text-corpus.mjs';
 import {LANGUAGES,LAYOUTS,findKey,DEFAULT_SETTINGS,availableLayouts} from './data.mjs';
 import {createProgress,generateWords,ensurePracticeProgress} from './core.mjs';
 
 export const METRICS_VERSION=3;
-export const CONTENT_VERSION='2026-10-a';
+export const CONTENT_VERSION='2026-10-b';
 export const median=values=>{let a=values.filter(Number.isFinite).sort((a,b)=>a-b);return a.length?a.length%2?a[a.length>>1]:(a[a.length/2-1]+a[a.length/2])/2:null};
 export const profileId=(lang,layout)=>lang+':'+layout;
 export function ensureLearning(data){
@@ -17,8 +18,8 @@ export function learningFor(data,lang,layout){ensureLearning(data);return data.l
 
 // Authored texts. Control material stays separate from training material.
 const training={
- ru:{letters:['Сегодня мы спокойно работаем с новым текстом. Важно видеть слово целиком и находить знакомые клавиши без спешки.','После встречи команда обсудила план. Каждый записал свою задачу и отправил короткий ответ.','Утром свет падает на стол. Рядом лежат книга и блокнот, а в окне виден тихий двор.'],shift:['Анна и Борис готовят новый проект. Вера проверяет письмо, а Олег читает ответ.','Маша открыла заметку. После работы Иван и Елена встретились у метро.'],numbers:['Встреча: 12.10, 18:30. Кабинет 204. В плане 3 задачи, а перерыв длится 15 минут.','Заказ 482: 2 книги по 350 рублей. Всего 700 рублей. Доставка: 07.11, с 10:00 до 12:00.'],work:['Добрый день! Пришли, пожалуйста, новую версию документа до пятницы. Я проверю список задач и напишу ответ.','Спасибо за встречу. Мы обсудили сроки, уточнили детали и выбрали следующий шаг. Краткие заметки уже готовы.']},
- en:{letters:['Today we work with a new text at a comfortable pace. Read a little ahead and let your hands find the familiar keys.','The team reviewed the plan after the meeting. Each person wrote a short note and chose the next task.','Morning light falls on the desk. A book and a notebook are ready for a quiet hour of work.'],shift:['Anna and Ben start a new project. Maria checks the message while Oliver reads the reply.','Alex opened the document. After work, Emma and Daniel met near the station.'],numbers:['Meeting: 12.10, 18:30. Room 204. The plan has 3 tasks and a 15 minute break.','Order 482: 2 books at $35 each. Total: $70. Delivery: 07.11, from 10:00 to 12:00.'],work:['Hello! Please send the latest version of the document before Friday. I will review the tasks and write a short reply.','Thank you for the meeting. We discussed the schedule, checked the details, and agreed on the next step.']},
+ ru:{letters:['Сегодня мы спокойно работаем с новым текстом. Важно видеть слово целиком и находить знакомые клавиши без спешки.','После встречи команда обсудила план. Каждый записал свою задачу и отправил короткий ответ. Затем коллеги проверили сроки и договорились о новой встрече.','Утром свет падает на стол. Рядом лежат книга и блокнот, а в окне виден тихий двор.'],shift:['Анна и Борис готовят новый проект. Вера проверяет письмо, а Олег читает ответ. Вечером Дмитрий соберёт все замечания и подготовит список изменений.','Маша открыла заметку. После работы Иван и Елена встретились у метро. Они обсудили прогулку по парку и выбрали маршрут на следующие выходные.'],numbers:['Встреча: 12.10, 18:30. Кабинет 204. В плане 3 задачи, а перерыв длится 15 минут. После обсуждения проверь 2 документа и отправь отчёт до 20:00.','Заказ 482: 2 книги по 350 рублей. Всего 700 рублей. Доставка: 07.11, с 10:00 до 12:00.'],work:['Добрый день! Пришли, пожалуйста, новую версию документа до пятницы. Я проверю список задач и напишу ответ.','Спасибо за встречу. Мы обсудили сроки, уточнили детали и выбрали следующий шаг. Краткие заметки уже готовы.']},
+ en:{letters:['Today we work with a new text at a comfortable pace. Read a little ahead and let your hands find the familiar keys.','The team reviewed the plan after the meeting. Each person wrote a short note and chose the next task.','Morning light falls on the desk. A book and a notebook are ready for a quiet hour of work.'],shift:['Anna and Ben start a new project. Maria checks the message while Oliver reads the reply.','Alex opened the document. After work, Emma and Daniel met near the station. They discussed a walk through the park and chose a route for the weekend.'],numbers:['Meeting: 12.10, 18:30. Room 204. The plan has 3 tasks and a 15 minute break.','Order 482: 2 books at $35 each. Total: $70. Delivery: 07.11, from 10:00 to 12:00.'],work:['Hello! Please send the latest version of the document before Friday. I will review the tasks and write a short reply.','Thank you for the meeting. We discussed the schedule, checked the details, and agreed on the next step.']},
  fr:{letters:['Nous travaillons sur un nouveau texte. Lis les mots calmement et laisse tes mains trouver les touches.','Le groupe regarde le plan. Chaque personne choisit une petite action pour continuer le projet.'],shift:['Anne et Paul ouvrent le document. Marie lit le message et Luc donne une courte remarque.'],numbers:['Rendez-vous: 12.10, 18:30. Salle 204. Le plan contient 3 actions et une pause de 15 minutes.'],work:['Bonjour! Merci pour le message. Le nouveau document est disponible pour la prochaine rencontre.']}
 };
 const checks={
@@ -49,7 +50,8 @@ const checks={
  'Des crayons attendent sur la table. Un enfant dessine une maison et un arbre. Le petit chemin traverse le jardin.'
  ]
 };
-export function contentText(lang,type,index=0){let pool=training[lang]?.[type]||training[lang]?.letters;return pool[index%pool.length]}
+export function contentPool(lang,type){return [...(training[lang]?.[type]||training[lang]?.letters||[]),...(EXTRA_TEXTS[lang]?.[type]||[])];}
+export function contentText(lang,type,index=0){const pool=contentPool(lang,type);return pool[((index%pool.length)+pool.length)%pool.length]}
 export function controlText(model,lang){let pool=checks[lang],index=pool.findIndex((_,i)=>!model.seenChecks.includes(lang+'-check-'+i));if(index<0)return null;return{id:lang+'-check-'+index,text:pool[index],type:'control',version:CONTENT_VERSION}}
 export function diagnosticText(lang,stage){return contentText(lang,['letters','shift','numbers'][stage],1)}
 export function normalizeText(raw){return String(raw).normalize('NFC').replace(/\s+/gu,' ').trim()}
