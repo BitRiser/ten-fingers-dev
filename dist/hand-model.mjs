@@ -61,3 +61,11 @@ export function thumbPoints(amount=0){
  const flex=Math.acos(Math.max(-1,Math.min(1,(radius*radius-a*a-b*b)/(2*a*b)))),pitch=Math.atan2(-base[2],distance)-Math.atan2(-b*Math.sin(flex),a+b*Math.cos(flex));
  const points=[base];for(let i=0;i<2;i++){const previous=points.at(-1),angle=pitch-i*flex,length=THUMB_LENGTHS[i],projected=length*Math.cos(angle);points.push([previous[0]+Math.cos(yaw)*projected,previous[1]+Math.sin(yaw)*projected,previous[2]+length*Math.sin(angle)]);}return points;
 }
+
+// The expected character is a persistent pose hint, including opposite-hand Shift.
+export function hintKeys(target){
+ if(!target)return[];
+ const keys=target.finger<8?[target]:[];
+ if(target.shift)keys.push({finger:target.finger<4?7:0,row:4,col:target.finger<4?1:0});
+ return keys;
+}

@@ -613,11 +613,23 @@ dialog.onboarding-dialog{width:min(750px,calc(100vw - 28px));padding:28px 32px;m
 @media(max-width:560px){.meme-sample-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.sound-settings-heading h3{font-size:20px}.sound-modes{gap:7px}.sound-mode-card{padding:12px 9px}.sound-mode-card strong{font-size:10px}.sound-mode-card small{font-size:9px}.sound-mode-mark{font-size:22px}.switch-profiles{grid-template-columns:1fr}.sound-subheading{align-items:flex-start;flex-wrap:wrap;gap:6px}.switch-profile{padding:13px}.switch-card-copy>span{font-size:10px}.keyboard-sound-button{font-size:9px;gap:8px}.sound-mode-value{padding-left:8px}.sound-preview-actions{gap:8px}}
 
-/* Keep the typing plane sharp: filters never touch its ancestors. */
-body.typing-focus :is(#header,.sidebar,footer,#content>:not(.exercise),.editor-toolbar,.editor-status,.stage-meta,.line-gutter,.exercise-actions,.input-message,.keyboard-model,.keyboard-sound-toolbar,.finger-hint,.hand-caption,#toast),
-body.typing-focus :is(#header,.sidebar,.control-panel):hover{filter:blur(16px);opacity:.025;transition:filter .16s,opacity .16s}
-body.typing-focus .editor-surface{background:transparent;border-color:transparent;box-shadow:none}
-body.typing-focus .words,body.typing-focus .keyboard-svg{filter:none;opacity:1}
+/* Blur the surroundings gently; controls and finger guidance stay readable. */
+.focus-controls{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:10px 18px;min-height:49px;border-bottom:1px solid var(--line);font-size:10px;color:var(--muted)}
+.focus-controls>span{opacity:0;transition:opacity .2s}
+.focus-controls button{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);color:var(--text);font-size:11px;min-height:32px}
+.focus-controls button .icon{width:14px;height:14px}.focus-controls kbd{font-size:9px;color:var(--muted);border-left:1px solid var(--line);padding-left:8px}
+body.typing-focus :is(#header,.sidebar,footer,#content>:not(.exercise),.editor-toolbar,.editor-status,.stage-meta,.line-gutter,.keyboard-model,.keyboard-sound-toolbar,.hand-caption),
+body.typing-focus :is(#header,.sidebar,.control-panel):hover{filter:blur(3px);opacity:.45;transition:filter .22s,opacity .22s}
+body.typing-focus .exercise-actions{filter:blur(2px);opacity:.4;transition:filter .22s,opacity .22s}
+body.typing-focus .exercise-actions:hover,body.typing-focus .exercise-actions:focus-within{filter:none;opacity:1}
+body.typing-focus .editor-surface{background:color-mix(in srgb,var(--panel) 60%,var(--bg));border-color:var(--line);box-shadow:none}
+body.typing-focus :is(.words,.keyboard-svg,.finger-hint,.focus-controls,.input-message,#toast){filter:none;opacity:1}
+body.typing-focus .focus-controls>span{opacity:1}
+body.typing-focus .focus-controls button{position:fixed;top:18px;right:24px;z-index:70;border-color:color-mix(in srgb,var(--accent) 65%,var(--line));color:var(--accent);background:var(--panel2);box-shadow:0 4px 18px color-mix(in srgb,var(--bg) 80%,transparent)}
+.mac-keyboard .finger-hint{color:var(--text);font-size:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 14px;display:table;margin:0 auto 0!important;min-height:35px}
+.mac-keyboard .key-cap.target rect{fill:color-mix(in srgb,var(--accent) 38%,var(--nav));stroke:var(--accent);stroke-width:2.2;opacity:1}
+.mac-keyboard .active-finger .finger-skin{fill:color-mix(in srgb,var(--hand-fill) 80%,var(--accent));stroke:var(--accent);stroke-width:2.2}
+@media(max-width:560px){.focus-controls{padding:8px 10px;font-size:9px}.focus-controls button{font-size:10px;gap:5px}.focus-controls kbd{font-size:8px}.mac-keyboard .finger-hint{font-size:10px;padding:8px 11px}.focus-controls>span{max-width:125px}body.typing-focus .focus-controls button{top:12px;right:13px}}
 .workspace-path,.workspace-tabs,.nav-number,.brand-copy small,.nav-section{display:none}
 #header{min-height:50px;margin-bottom:26px;padding-bottom:0;grid-template-rows:auto}
 .stage{min-height:150px}
@@ -655,35 +667,27 @@ body.typing-focus .words,body.typing-focus .keyboard-svg{filter:none;opacity:1}
 .code-volume-bar button.selected{background:color-mix(in srgb,var(--accent) 10%,var(--panel));border-color:var(--accent);color:var(--accent)}
 .code-volume-bar small{margin-left:auto;white-space:nowrap}
 .meme-sample-buttons>.sound-subheading{grid-column:1/-1;margin:0 0 2px;color:var(--text)}
-.journey-heading{display:flex;align-items:center;justify-content:space-between;gap:28px;margin:10px 0 28px}
-.journey-heading h2{font-size:27px;margin:9px 0 10px;font-weight:500;letter-spacing:-.025em;color:var(--text)}
-.journey-heading p:last-child{font-size:12px;line-height:1.85;color:var(--muted);max-width:510px}
-.journey-heading button{white-space:nowrap;min-height:44px}
-.journey-progress-label{display:flex;justify-content:space-between;gap:15px;font-size:11px;color:var(--muted);margin-bottom:10px}
-.journey-progress-label strong{font-weight:500;color:var(--accent)}
-.journey-progress{height:8px;background:var(--line);border-radius:10px;overflow:hidden;margin-bottom:28px}
-.journey-progress i{display:block;height:100%;background:var(--accent);border-radius:10px;transition:width .35s}
-.journey-chapters{display:grid;gap:13px;max-width:800px;margin:auto}
-.journey-chapter{border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow:hidden}
-.journey-chapter.current-chapter{border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
-.journey-chapter>summary{list-style:none;display:flex;align-items:center;gap:15px;padding:20px;cursor:pointer}
-.journey-chapter>summary::-webkit-details-marker{display:none}
-.chapter-marker{width:35px;height:35px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);font-size:12px;color:var(--accent)}
-.journey-chapter summary strong{font-size:13px;font-weight:500;color:var(--text)}
-.journey-chapter summary small{display:block;color:var(--muted);font-size:10px;margin-top:4px}.chapter-score{margin-left:auto;font-size:11px;color:var(--muted)}
-.chapter-route{padding:10px 25px 12px;border-top:1px solid var(--line)}
-.route-map{height:var(--route-height);position:relative;max-width:580px;margin:auto}
-.route-map>svg{width:100%;height:100%;position:absolute;inset:0;overflow:visible}
-.route-edge{fill:none;stroke:var(--line);stroke-width:3;stroke-dasharray:4 6;stroke-linecap:round}.route-edge.traveled{stroke:var(--accent);stroke-dasharray:none}
-.route-stop{position:absolute;transform:translateX(-50%);width:110px;text-align:center}
-.route-node{position:relative;display:grid;place-items:center;width:49px;height:49px;margin:auto;border:2px solid var(--line);border-radius:50%;background:var(--panel2);font-size:16px}
-.route-node.current{background:var(--accent);border-color:var(--accent);color:var(--bg);box-shadow:0 0 0 7px color-mix(in srgb,var(--accent) 11%,transparent)}
-.route-node.done{color:var(--success);border-color:var(--success);background:var(--panel)}
-.route-node.locked{opacity:.45;cursor:default}.route-node:not(:disabled):hover{transform:translateY(-2px)}
-.route-stop>small{display:block;font-size:9px;line-height:1.5;color:var(--muted);margin-top:9px;min-height:27px}
-.route-stop.current>small{color:var(--text)}
-.route-player{position:absolute;top:-22px;font-style:normal;font-size:18px;animation:route-arrive .45s ease-out}
-.route-3{display:none}.journey-note{font-size:10px;line-height:1.9;color:var(--muted);max-width:800px;margin:22px auto}
+/* A small next step first, with connected chapters behind it. */
+.journey{max-width:790px;margin:0 auto}.journey-heading{margin:9px 0 22px}.journey-heading h2{font-size:clamp(25px,3vw,34px);margin:10px 0 12px;font-weight:500;letter-spacing:-.03em;color:var(--text)}
+.journey-heading p:last-child{font-size:13px;line-height:1.85;color:var(--muted);max-width:620px}
+.journey-progress-label{display:flex;justify-content:space-between;gap:15px;font-size:10px;color:var(--muted);margin-bottom:8px}.journey-progress-label strong{font-weight:500;color:var(--text)}
+.journey-progress{height:5px;background:var(--line);border-radius:8px;overflow:hidden;margin-bottom:22px}.journey-progress i{display:block;height:100%;background:var(--accent);border-radius:8px;transition:width .35s}
+.journey-next{padding:22px 24px;border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));border-radius:14px;background:color-mix(in srgb,var(--accent) 4%,var(--panel));display:flex;gap:22px;justify-content:space-between;align-items:center;margin-bottom:28px}
+.journey-next small{font-size:10px;color:var(--muted)}.journey-next h3{font-size:21px;font-weight:500;color:var(--text);margin:6px 0 9px}.journey-next p{font-size:11px;color:var(--muted);line-height:1.8}.journey-next button{white-space:nowrap;min-height:43px;font-size:11px}
+.journey-keys{display:inline-flex;gap:5px;margin-left:6px}.journey-keys kbd{min-width:27px;height:28px;display:grid;place-items:center;border:1px solid var(--line);border-bottom-width:3px;border-radius:5px;background:var(--panel2);color:var(--text);font-size:12px}
+.journey-track{max-width:670px;margin:auto}.journey-section-label{font-size:10px;color:var(--muted);margin-bottom:12px}
+.journey-chapter{position:relative;border:1px solid var(--line);border-radius:12px;background:var(--panel)}.journey-chapter.current-chapter{border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
+.journey-chapter>summary{list-style:none;display:flex;align-items:center;gap:13px;padding:17px 20px;cursor:pointer}.journey-chapter>summary::-webkit-details-marker{display:none}
+.chapter-marker{width:33px;height:33px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);font-size:11px;color:var(--accent);flex-shrink:0}.chapter-title{flex:1}
+.journey-chapter summary strong{font-size:12px;font-weight:500;color:var(--text)}.journey-chapter summary small{display:block;color:var(--muted);font-size:10px;margin-top:3px}.chapter-score{font-size:10px;color:var(--muted);white-space:nowrap}
+.chapter-gate{position:absolute;left:50%;width:7px;height:7px;border:1px solid var(--line);background:var(--panel);border-radius:50%;transform:translateX(-50%);z-index:1}.chapter-gate.entry{top:-4px}.chapter-gate.exit{bottom:-4px}
+.route-bridge{position:relative;height:38px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:10px}.route-bridge:before{content:'';position:absolute;top:0;bottom:0;left:50%;border-left:2px dashed var(--line)}.route-bridge span{z-index:1;background:var(--bg);padding:3px 7px}.route-bridge.traveled:before{border-color:var(--accent);border-left-style:solid}.route-bridge.traveled{color:var(--accent)}
+.chapter-route{padding:0 17px 14px;border-top:1px solid var(--line)}.chapter-route>p{font-size:10px;color:var(--muted);line-height:1.8;margin:14px 0 3px}.chapter-route>p strong{color:var(--text);font-weight:500}
+.route-map{height:var(--route-height);position:relative;max-width:550px;margin:auto}.route-map>svg{width:100%;height:100%;position:absolute;inset:0;overflow:visible}.route-edge{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:4 6;stroke-linecap:round}.route-edge.traveled{stroke:var(--accent);stroke-dasharray:none}
+.route-stop{position:absolute;transform:translateX(-50%);width:95px;text-align:center}.route-node{position:relative;display:grid;place-items:center;width:43px;height:43px;margin:auto;border:2px solid var(--line);border-radius:50%;background:var(--panel2);font-size:14px}.route-node.current{background:var(--accent);border-color:var(--accent);color:var(--bg);box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 10%,transparent)}.route-node.done{color:var(--success);border-color:var(--success);background:var(--panel)}.route-node.locked{opacity:.6;cursor:default}.route-node:not(:disabled):hover{transform:translateY(-2px)}
+.route-stop>small{display:block;font-size:9px;line-height:1.5;color:var(--muted);margin-top:7px;min-height:15px}.route-stop.current>small{color:var(--text)}.route-player{position:absolute;top:-19px;font-style:normal;font-size:15px;animation:route-arrive .45s ease-out}.route-3{display:none}
+.journey-fold>summary{list-style:none;cursor:pointer;display:block;padding:13px;text-align:center;font-size:11px;color:var(--muted);border:1px dashed var(--line);border-radius:10px;background:var(--panel)}.journey-fold>summary::-webkit-details-marker{display:none}.journey-fold[open]>summary{margin-bottom:16px}.journey-fold.history{margin-bottom:20px}.journey-note{font-size:10px;line-height:1.9;color:var(--muted);max-width:670px;margin:20px auto}
+@media(max-width:720px){.journey-next{padding:18px;flex-direction:column;align-items:flex-start;gap:14px}.journey-next button{width:100%}.journey-next h3{font-size:19px}.journey-heading p:last-child{font-size:12px}.chapter-route{padding:0 8px 12px}.journey-chapter>summary{padding:15px 13px;gap:10px}.journey-chapter summary strong{font-size:11px}.chapter-score{font-size:9px}.route-4{display:none}.route-3{display:block}.route-stop{width:82px}.route-stop>small{font-size:9px}}
 .mac-keyboard .hand-palm,.mac-keyboard .finger-skin,.mac-keyboard .thumb-skin{fill:url(#handSkin)}
 .mac-keyboard .hands-layer{opacity:.58}
 .mac-keyboard .thumb{opacity:1}
@@ -694,5 +698,5 @@ body.typing-focus .words,body.typing-focus .keyboard-svg{filter:none;opacity:1}
 .mac-keyboard .fingernail{fill:color-mix(in srgb,var(--hand-fill) 65%,white);fill-opacity:.7;stroke:var(--text);stroke-opacity:.35;stroke-width:.7}
 .mac-keyboard .joint-pad{fill-opacity:.035}
 @keyframes route-arrive{from{transform:translateY(-10px);opacity:0}to{transform:none;opacity:1}}
-@media(max-width:720px){.start-paths{grid-template-columns:1fr;gap:10px}.start-paths>button{padding:18px;gap:7px}.start-paths h3{font-size:18px}.welcome-how{gap:10px}.practice-intro{align-items:flex-start}.practice-intro h2{font-size:20px}.practice-intro p{font-size:10px}.practice-essentials{gap:14px;font-size:10px}.journey-heading{flex-wrap:wrap;gap:16px}.journey-heading h2{font-size:24px}.journey-heading button{width:100%}.route-4{display:none}.route-3{display:block}.chapter-route{padding:10px 10px 14px}.route-stop{width:92px}.route-stop>small{font-size:8px}.journey-chapter>summary{padding:16px}.journey-chapter summary strong{font-size:11px}.code-volume-bar{gap:10px}}
-@media(prefers-reduced-motion:reduce){body.typing-focus :is(#header,.sidebar,footer,#content>:not(.exercise),.editor-toolbar,.editor-status,.stage-meta,.line-gutter,.exercise-actions,.input-message,.keyboard-model,.keyboard-sound-toolbar,.finger-hint,.hand-caption,#toast){transition:none}.route-player{animation:none}.journey-progress i{transition:none}.route-node:not(:disabled):hover{transform:none}}
+@media(max-width:720px){.start-paths{grid-template-columns:1fr;gap:10px}.start-paths>button{padding:18px;gap:7px}.start-paths h3{font-size:18px}.welcome-how{gap:10px}.practice-intro{align-items:flex-start}.practice-intro h2{font-size:20px}.practice-intro p{font-size:10px}.practice-essentials{gap:14px;font-size:10px}.code-volume-bar{gap:10px}}
+@media(prefers-reduced-motion:reduce){body.typing-focus :is(#header,.sidebar,footer,#content>:not(.exercise),.editor-toolbar,.editor-status,.stage-meta,.line-gutter,.exercise-actions,.input-message,.keyboard-model,.keyboard-sound-toolbar,.hand-caption){transition:none}.route-player{animation:none}.journey-progress i{transition:none}.route-node:not(:disabled):hover{transform:none}}

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {LAYOUTS,findKey,numberRow} from '../dist/data.mjs';
 import {keyboardMarkup} from '../dist/keyboard.mjs';
-import {BASES,LENGTHS,THUMB_LENGTHS,homePoint,keyPoint,handOffset,solveFinger,jointPose,posePoints,thumbPoints,strokePhase,interpolatePose} from '../dist/hand-model.mjs';
+import {BASES,LENGTHS,THUMB_LENGTHS,homePoint,keyPoint,handOffset,solveFinger,jointPose,posePoints,thumbPoints,strokePhase,interpolatePose,hintKeys} from '../dist/hand-model.mjs';
 import {keyBox,center} from '../dist/mac-geometry.mjs';
 for(const [layout,definition] of Object.entries(LAYOUTS)){
  const markup=keyboardMarkup(layout);
@@ -34,3 +34,5 @@ console.log('Passed: all layouts, 78-key Mac ANSI geometry, exact fingertip alig
 
 for(let i=0;i<8;i++)for(let ms=0;ms<=240;ms+=4){const home=jointPose(i,homePoint(i),12),key={row:2,col:i<4?i:i+2,finger:i},offset=handOffset(key),goal=jointPose(i,keyPoint(key).map((v,a)=>v-offset[a])),phase=strokePhase(ms),points=posePoints(i,interpolatePose(home,goal,phase.amount));assert(points.every(p=>p.every(Number.isFinite)));for(let bone=0;bone<3;bone++)assert(Math.abs(Math.hypot(...points[bone+1].map((p,a)=>p-points[bone][a]))-LENGTHS[i][bone])<1e-8);}
 assert.equal(strokePhase(0).amount,0);assert.equal(strokePhase(45).amount,1);assert.equal(strokePhase(100).contact,true);assert.equal(strokePhase(240).amount,0);assert.equal(strokePhase(240).done,true);
+assert.deepEqual(hintKeys(null),[]);assert.deepEqual(hintKeys(findKey(' ','qwerty')),[]);
+for(const char of ['a','q','z','1','A','?','{']){const key=findKey(char,'qwerty'),hints=hintKeys(key);assert.equal(hints.length,key.shift?2:1);assert.equal(hints[0],key);if(key.shift){assert.equal(hints[1].row,4);assert.equal(hints[1].finger,key.finger<4?7:0);}for(const hint of hints){const offset=handOffset(hint),point=keyPoint(hint),points=posePoints(hint.finger,jointPose(hint.finger,point.map((v,a)=>v-offset[a]),8));assert(Math.hypot(points[3][0]+offset[0]-point[0],points[3][1]+offset[1]-point[1])<.001,'the held hint points at the expected key');assert(Math.abs(points[3][2]-8)<.001,'hint hovers over the key until pressed');}}
