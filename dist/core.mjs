@@ -15,8 +15,18 @@ export function confidence(key,goal){
  // Rounding 99.9% up to 100% must never open a letter below the actual goal.
  return Math.max(0,Math.min(100,Math.floor(key.lastCPM/goal*100)));
 }
-// Display speed and the quality gate are deliberately separate. A failed
-// attempt contributes to the rolling mean, but never earns an unlock sample.
+// Estimated mastery is anchored to the real session pace, never the inverse
+// of one quick key transition. Delays and errors reduce the estimate.
+export function letterEstimate(result,letter){
+ const key=result.keys?.[letter];
+ const intervals=(key?.latencies||[]).filter(ms=>Number.isFinite(ms)&&ms>=20&&ms<=2000);
+ if(!key||key.correct<2||!intervals.length||!Number.isFinite(result.cpm)||result.cpm<0)return null;
+ const all=Object.values(result.keys).flatMap(k=>(k.latencies||[]).filter(ms=>Number.isFinite(ms)&&ms>=20&&ms<=2000));
+ const mean=values=>values.reduce((sum,ms)=>sum+ms,0)/values.length;
+ const tempo=Math.min(1,mean(all)/mean(intervals));
+ const accuracy=key.correct/Math.max(1,key.correct+(key.errors||0));
+ return result.cpm*tempo*accuracy;
+}
 export function letterSpeed(progress,letter,goal){
  const values=[],seen=new Set();
  for(let i=progress.history.length-1;i>=0&&values.length<5;i--){
@@ -24,9 +34,9 @@ export function letterSpeed(progress,letter,goal){
   if(!key||!((key.correct||0)+(key.errors||0)))continue;
   if(result.sessionId&&seen.has(result.sessionId))continue;
   if(result.sessionId)seen.add(result.sessionId);
-  const sample=assessPractice(result,result.practiceSample?.goal||goal,[letter]).keys[letter];
-  if(!sample?.measured&&key.correct)continue;
-  values.push(sample?.measured?60000/key.avgMs:0);
+  const estimate=letterEstimate(result,letter);
+  if(estimate===null&&key.correct)continue;
+  values.push(estimate??0);
  }
  const cpm=values.length?values.reduce((sum,value)=>sum+value,0)/values.length:0;
  return {cpm,count:values.length,percent:goal>0?Math.max(0,Math.min(100,cpm/goal*100)):0};
@@ -139,8 +149,22 @@ const PRACTICE_FRAMES={
  en:[['at','the'],['the','tea'],['eat','the'],['the','heat'],['we','have'],['they','read'],['this','is'],['we','write']],
  fr:[['il','est'],['elle','est'],['nous','avons'],['avec','les']]
 };
-export function practiceMaterial(lang,letters,focus,random=Math.random){
+export function practiceMaterial(lang,letters,focus,random=Math.random,{everyWordFocus=false}={}){
  const valid=w=>w.length>=2&&w.length<=8&&[...w].every(c=>letters.includes(c)),extra=lang==='ru'?['анне','неона','неоне','анион','аниона','анионе','иона','ионе','нони']:[],real=[...new Set([...wordPool(lang,letters),...extra])].filter(valid),invented=syllableWords(lang,letters,focus,random);
+ if(everyWordFocus&&focus&&letters.includes(focus)){
+  const pool=[...new Set([...real,...invented])].filter(w=>valid(w)&&w.includes(focus));
+  if(!pool.length)throw new Error('Нет слов для выбранной буквы.');
+  const used=new Map(),words=[],lengths=[2,3,4,5,6,7,8,3,4,5,6,7,8,2,4,6],offset=randomIndex(lengths.length,random);
+  for(let i=0;i<PRACTICE_WORD_COUNT;i++){
+   let choices=pool.filter(w=>w.length===lengths[(i+offset)%lengths.length]&&w!==words.at(-1));
+   if(!choices.length)choices=pool.filter(w=>w!==words.at(-1));
+   if(!choices.length)choices=pool;
+   const least=Math.min(...choices.map(w=>used.get(w)||0));choices=choices.filter(w=>(used.get(w)||0)===least);
+   const realChoices=choices.filter(w=>real.includes(w));if(realChoices.length)choices=realChoices;
+   const word=choices[randomIndex(choices.length,random)];words.push(word);used.set(word,(used.get(word)||0)+1);
+  }
+  return {words,type:'focused',available:real.length,note:`16 слов · 2–8 букв. Буква «${focus.toUpperCase()}» есть в каждом слове. Настоящие слова и учебные сочетания.`};
+ }
  const phraseKey=lang+':'+letters,phrases=(PRACTICE_PHRASES[lang]||[]).filter(text=>text.split(' ').every(valid)&&(!focus||text.split(focus).length>2)&&text!==lastPracticePhrase.get(phraseKey));
  if(phrases.length&&random()<.65){const text=phrases[randomIndex(phrases.length,random)];lastPracticePhrase.set(phraseKey,text);return {words:text.split(' '),type:'words',available:real.length,note:'16 слов · 2–8 букв. Короткий связный текст из уже доступных букв.'};}
  const pool=[...new Set([...real,...invented])];

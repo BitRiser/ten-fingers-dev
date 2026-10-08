@@ -97,9 +97,9 @@ console.log('Passed: wrong-key spam, skipped words, correction spam, exact 70%/8
 const rolling=createProgress();
 for(const cpm of [10,100,150,200,250,300])savePractice(rolling,withSpeed(cpm),'ru',goal);
 const {letterSpeed,practiceMaterial,syllableWords}=await import('../dist/core.mjs');
-assert.deepEqual(letterSpeed(rolling,'о',goal),{cpm:250,count:5,percent:100}); // key speed is bounded to 250 in the final attempt
+assert.deepEqual(letterSpeed(rolling,'о',goal),{cpm:200,count:5,percent:80}); // key speed is bounded to 250 in the final attempt
 savePractice(rolling,{...allWrong,sessionId:crypto.randomUUID()},'ru',goal);
-assert.deepEqual(letterSpeed(rolling,'о',goal),{cpm:200,count:5,percent:80},'failed attempts remain in the rolling window');
+assert.deepEqual(letterSpeed(rolling,'о',goal),{cpm:180,count:5,percent:72},'failed attempts remain in the rolling window');
 assert.deepEqual(letterSpeed({...rolling,history:[...rolling.history,rolling.history.at(-1)]},'о',goal),letterSpeed(rolling,'о',goal),'duplicate sessions do not occupy another rolling slot');
 const isolated={...rolling,history:[...rolling.history,{...withSpeed(250),keys:{а:correct.keys.а}}]};
 assert.deepEqual(letterSpeed(isolated,'о',goal),letterSpeed(rolling,'о',goal),'unrelated attempts do not displace a letter sample');
@@ -150,8 +150,22 @@ const different=createProgress(),differentKeys=structuredClone(correct.keys);
 differentKeys.о.avgMs=200;differentKeys.о.latencies=[200,200];
 differentKeys.а.avgMs=500;differentKeys.а.latencies=[500,500];
 savePractice(different,withSpeed(150,{keys:differentKeys}),'ru',goal);
-assert.equal(letterSpeed(different,'о',goal).cpm,300);
-assert.equal(letterSpeed(different,'а',goal).cpm,120);
+assert.equal(letterSpeed(different,'о',goal).cpm,150);
+assert(letterSpeed(different,'а',goal).cpm<150);
 const noTiming=createProgress();noTiming.history=[withSpeed(250,{keys:{о:{correct:2,errors:0,avgMs:null,latencies:[]}}})];
 assert.equal(letterSpeed(noTiming,'о',goal).count,0,'no fabricated speed without an interval');
 console.log('Passed: independent letter speeds, missing timing, remaining typo and idempotent reassessment.');
+
+const {letterEstimate}=await import('../dist/core.mjs');
+assert.equal(letterEstimate(withSpeed(100,{keys:fastKeys}),'о'),100,'fast bursts cannot exceed real session pace');
+const withError=structuredClone(differentKeys);withError.о.errors=3;
+assert(letterEstimate(withSpeed(150,{keys:withError}),'о')<letterEstimate(withSpeed(150,{keys:differentKeys}),'о'),'errors reduce mastery');
+for(const lang of ['ru','en'])for(const size of [5,10,LANGUAGES[lang].alphabet.length]){
+ const letters=LANGUAGES[lang].alphabet.slice(0,size);
+ for(const focus of letters)for(const seed of [.01,.5,.99]){
+  const m=practiceMaterial(lang,letters,focus,()=>seed,{everyWordFocus:true});
+  assert.equal(m.words.length,16);
+  assert(m.words.every(w=>w.includes(focus)&&w.length>=2&&w.length<=8&&[...w].every(c=>letters.includes(c))),'focused letter in EVERY word including connectors');
+ }
+}
+console.log('Passed: session-anchored estimates, error penalty and every-word focused drills for all RU/EN letters.');
