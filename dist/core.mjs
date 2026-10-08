@@ -4,9 +4,9 @@ import {PRACTICE_PHRASES} from './practice-phrases.mjs';
 export const PRACTICE_POLICY=3, SAMPLE_SPEED_RATIO=.7, SAMPLE_ACCURACY=85, REQUIRED_SAMPLES=3;
 export function lessonThreshold(ctx){
  const group=ctx.group||0,step=ctx.step||0;
- if(group===0)return {cpm:[0,0,0,20,30][step]||0,accuracy:[65,70,75,78,80][step]||80,attempts:1};
- const accuracy=step===0?70:step===1?75:step===2?80:Math.min(90,80+Math.floor(group/3)*2+(step-3)*2);
- const cpm=step<2?0:step===2?Math.min(50,20+group*3):Math.min(140,30+group*5+(step-3)*10);
+ if(group===0)return {cpm:[60,75,90,110,130][step]||130,accuracy:[75,78,80,82,85][step]||85,attempts:1};
+ const accuracy=Math.min(90,78+Math.floor(group/3)*2+step*2);
+ const base=75+group*13,cpm=Math.min(320,base+(step<3?[0,20,35][step]:40+(step-3)*15));
  return {cpm,accuracy,attempts:step===LESSON_GROUPS[group][1]-1?2:1};
 }
 export function createProgress(){return {unlocked:5,letters:{},history:[],lessons:{},lessonHistory:[],tests:[],samplePolicy:PRACTICE_POLICY}}
@@ -184,8 +184,10 @@ export function syllableWords(lang,letters,focus,random=Math.random){
 }
 export function lessonInfo(group,step,layout){let fresh=mapPhysicalKeys(LESSON_GROUPS[group][0],layout);let learned=LESSON_GROUPS.slice(0,group+1).map(([k])=>mapPhysicalKeys(k,layout)).join('');if(group===0&&step<2){fresh=fresh.slice(0,2);learned=fresh;}return{fresh,learned,group,step,id:`${layout}:${group}:${step}`}}
 export function lessonWords(info,lang,random=Math.random){
- const {step,group,fresh,learned}=info,count=step===0?8:step<3?10:Math.min(18,12+group);
- if(step===0)return Array.from({length:count},(_,i)=>fresh[i%fresh.length]);
+ const {step,group,fresh,learned}=info,base=step===0?9:step<3?11:Math.min(18,12+group),count=base-1+randomIndex(4,random);
+ if(step===0){
+  const words=[];while(words.length<count){const bag=[...fresh];for(let i=bag.length-1;i>0;i--){const j=randomIndex(i+1,random);[bag[i],bag[j]]=[bag[j],bag[i]];}words.push(...bag);}return words.slice(0,count);
+ }
  if(step<=2){const chars=[...fresh],pairs=chars.flatMap(a=>chars.map(b=>a+b)),words=[];let bag=[];while(words.length<count){if(!bag.length){bag=[...pairs];for(let i=bag.length-1;i>0;i--){const j=randomIndex(i+1,random);[bag[i],bag[j]]=[bag[j],bag[i]];}if(bag.at(-1)===words.at(-1)&&bag.length>1)[bag[0],bag[bag.length-1]]=[bag.at(-1),bag[0]];}words.push(bag.pop());}return words;}
  const max=Math.min(8,group<2?3:group<5?4:group<8?6:8),real=wordPool(lang,learned).filter(w=>w.length<=max),pool=real.length>=6?real:[...new Set([...real,...syllableWords(lang,learned,null,random).filter(w=>w.length<=max)])];
  if(!pool.length)return keyDrills(learned,count,random).map(w=>w.slice(0,max));
