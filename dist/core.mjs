@@ -1,7 +1,7 @@
 import {LANGUAGES,DEFAULT_SETTINGS,LESSON_GROUPS,mapPhysicalKeys} from './data.mjs';
 import {EXTRA_WORDS} from './vocabulary.mjs';
 import {PRACTICE_PHRASES} from './practice-phrases.mjs';
-export const PRACTICE_POLICY=3, SAMPLE_SPEED_RATIO=.7, SAMPLE_ACCURACY=85, REQUIRED_SAMPLES=3;
+export const PRACTICE_POLICY=4, SAMPLE_SPEED_RATIO=.7, SAMPLE_ACCURACY=85, REQUIRED_SAMPLES=3;
 export function lessonThreshold(ctx){
  const group=ctx.group||0,step=ctx.step||0;
  if(group===0)return {cpm:[60,75,90,110,130][step]||130,accuracy:[75,78,80,82,85][step]||85,attempts:1};
@@ -24,7 +24,9 @@ export function letterSpeed(progress,letter,goal){
   if(!key||!((key.correct||0)+(key.errors||0)))continue;
   if(result.sessionId&&seen.has(result.sessionId))continue;
   if(result.sessionId)seen.add(result.sessionId);
-  values.push(assessPractice(result,result.practiceSample?.goal||goal,[letter]).keys[letter]?.cpm||0);
+  const sample=assessPractice(result,result.practiceSample?.goal||goal,[letter]).keys[letter];
+  if(!sample?.measured&&key.correct)continue;
+  values.push(sample?.measured?60000/key.avgMs:0);
  }
  const cpm=values.length?values.reduce((sum,value)=>sum+value,0)/values.length:0;
  return {cpm,count:values.length,percent:goal>0?Math.max(0,Math.min(100,cpm/goal*100)):0};
@@ -38,8 +40,8 @@ export function targetLetter(progress,lang,goal){let active=[...LANGUAGES[lang].
 export function assessPractice(result,goal,letters){
  const floor=goal*SAMPLE_SPEED_RATIO,reasons=[],keys={},accepted=[];
  if(!Number.isFinite(goal)||goal<=0||!Number.isFinite(result.cpm)||result.cpm<0||!Number.isFinite(result.duration)||result.duration<=0)reasons.push('measurement');
- if(!Number.isFinite(result.accuracy)||result.accuracy<SAMPLE_ACCURACY||!Number.isFinite(result.firstAttemptAccuracy)||result.firstAttemptAccuracy<SAMPLE_ACCURACY)reasons.push('accuracy');
- if(!Number.isInteger(result.wordCount)||result.wordCount<1||result.correctWords!==result.wordCount||result.incorrectWords!==0||result.finalAccuracy!==100)reasons.push('unfinished');
+ if(!Number.isFinite(result.accuracy)||result.accuracy<SAMPLE_ACCURACY||!Number.isFinite(result.firstAttemptAccuracy)||result.firstAttemptAccuracy<SAMPLE_ACCURACY||!Number.isFinite(result.finalAccuracy)||result.finalAccuracy<SAMPLE_ACCURACY)reasons.push('accuracy');
+ if(!Number.isInteger(result.wordCount)||result.wordCount<1||result.correctWords+result.incorrectWords!==result.wordCount)reasons.push('unfinished');
  if(result.cpm<floor)reasons.push('speed');
  for(const [letter,data] of Object.entries(result.keys||{})){
   if(!letters.includes(letter))continue;
@@ -65,12 +67,12 @@ function recordPracticeKeys(progress,assessment){
 export function ensurePracticeProgress(progress,lang,goal){
  if(progress.samplePolicy===PRACTICE_POLICY)return progress;
  // Reassess old samples; keep the user's history and already available letters.
- const trusted=progress.samplePolicy===2?progress.letters:null,newly={};
+ const trusted=[2,3].includes(progress.samplePolicy)?progress.letters:null,newly={};
  progress.letters={};const seen=new Set(),letters=[...LANGUAGES[lang].alphabet].slice(0,progress.unlocked);
  for(const result of progress.history){
   if(result.sessionId&&seen.has(result.sessionId))continue;if(result.sessionId)seen.add(result.sessionId);
   const assessment=assessPractice(result,result.practiceSample?.goal||goal,letters);
-  if(trusted)for(const c of assessment.accepted)if(result.practiceSample? !result.practiceSample.accepted?.includes(c): result.accuracy<95||result.firstAttemptAccuracy<95||assessment.keys[c].accuracy<95)newly[c]=(newly[c]||0)+1;
+  if(trusted)for(const c of assessment.accepted)if(result.practiceSample? !result.practiceSample.accepted?.includes(c): progress.samplePolicy===2&&(result.accuracy<95||result.firstAttemptAccuracy<95||assessment.keys[c].accuracy<95))newly[c]=(newly[c]||0)+1;
   recordPracticeKeys(progress,assessment);
  }
  if(trusted)for(const [c,old] of Object.entries(trusted)){const key=progress.letters[c]??={...old};key.samples=Math.max(key.samples||0,(old.samples||0)+(newly[c]||0));key.topCPM=Math.max(key.topCPM||0,old.topCPM||0);}

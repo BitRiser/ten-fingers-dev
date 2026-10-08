@@ -42,7 +42,7 @@ assert.equal(p.unlocked,6);
 const three=createProgress();for(let i=0;i<2;i++)savePractice(three,withSpeed(250),'ru',goal);assert.equal(three.unlocked,5);assert.ok(Object.values(three.letters).every(k=>confidence(k,goal)===0));
 assert.equal(savePractice(three,withSpeed(250),'ru',goal),LANGUAGES.ru.alphabet[5]);assert.equal(three.unlocked,6);
 // Very fast transitions and good final text cannot compensate for poor input accuracy.
-for(const changes of [{accuracy:84.999},{firstAttemptAccuracy:84.999},{incorrectWords:1,correctWords:5},{finalAccuracy:99.99}]){
+for(const changes of [{accuracy:84.999},{firstAttemptAccuracy:84.999},{incorrectWords:1,correctWords:4},{finalAccuracy:84.999}]){
  const q=createProgress();for(let i=0;i<8;i++)savePractice(q,withSpeed(3000,changes),'ru',goal);
  assert.equal(q.unlocked,5);assert.ok(Object.values(q.letters).every(k=>k.samples===0));
 }
@@ -82,7 +82,7 @@ const legacy={...createProgress(),samplePolicy:undefined,unlocked:7,letters:{о:
 ensurePracticeProgress(legacy,'ru',goal);assert.equal(legacy.unlocked,7);assert.equal(legacy.history.length,2);assert.equal(legacy.letters.о.samples,1);
 ensurePracticeProgress(legacy,'ru',goal);assert.equal(legacy.letters.о.samples,1);
 const older={version:2,progress:{ru:{...legacy,samplePolicy:undefined}}};
-const loaded=ensureLearning(loadData({getItem:key=>key===STORAGE_KEY?JSON.stringify(older):null}));assert.equal(loaded.progress.ru.samplePolicy,3);assert.equal(loaded.progress.ru.letters.о.samples,1);
+const loaded=ensureLearning(loadData({getItem:key=>key===STORAGE_KEY?JSON.stringify(older):null}));assert.equal(loaded.progress.ru.samplePolicy,4);assert.equal(loaded.progress.ru.letters.о.samples,1);
 assert.doesNotThrow(()=>parseBackup(backupData(loaded)));
 for(const edit of [k=>k.samples=.5,k=>k.lastCPM=-1,k=>k.lastAccuracy=101,k=>k.lastQualified='yes']){const bad=structuredClone(loaded);edit(bad.progress.ru.letters.о);assert.throws(()=>parseBackup(backupData(bad)));}
 // Durable writes, retry, and backup preserve the new assessment and immutable session goal.
@@ -97,9 +97,9 @@ console.log('Passed: wrong-key spam, skipped words, correction spam, exact 70%/8
 const rolling=createProgress();
 for(const cpm of [10,100,150,200,250,300])savePractice(rolling,withSpeed(cpm),'ru',goal);
 const {letterSpeed,practiceMaterial,syllableWords}=await import('../dist/core.mjs');
-assert.deepEqual(letterSpeed(rolling,'о',goal),{cpm:190,count:5,percent:76}); // key speed is bounded to 250 in the final attempt
+assert.deepEqual(letterSpeed(rolling,'о',goal),{cpm:250,count:5,percent:100}); // key speed is bounded to 250 in the final attempt
 savePractice(rolling,{...allWrong,sessionId:crypto.randomUUID()},'ru',goal);
-assert.deepEqual(letterSpeed(rolling,'о',goal),{cpm:170,count:5,percent:68},'failed attempts remain in the rolling window');
+assert.deepEqual(letterSpeed(rolling,'о',goal),{cpm:200,count:5,percent:80},'failed attempts remain in the rolling window');
 assert.deepEqual(letterSpeed({...rolling,history:[...rolling.history,rolling.history.at(-1)]},'о',goal),letterSpeed(rolling,'о',goal),'duplicate sessions do not occupy another rolling slot');
 const isolated={...rolling,history:[...rolling.history,{...withSpeed(250),keys:{а:correct.keys.а}}]};
 assert.deepEqual(letterSpeed(isolated,'о',goal),letterSpeed(rolling,'о',goal),'unrelated attempts do not displace a letter sample');
@@ -137,3 +137,21 @@ assert.equal(weakestLetter(measured,'ru',goal).letter,'о','unknown letters do n
 assert.deepEqual(weakestLetter(measured,'ru',goal),{letter:'о',...letterSpeed(measured,'о',goal)});
 const failedOnly=createProgress();failedOnly.history=[{...allWrong,keys:{а:allWrong.keys.о,я:allWrong.keys.о}}];
 assert.equal(weakestLetter(failedOnly,'ru',goal).letter,'а','measured zero speed is included, locked letters excluded');
+
+// A completed exercise with one remaining typo follows the visible 85% rule.
+const remainingTypo=withSpeed(216,{accuracy:91,firstAttemptAccuracy:92,finalAccuracy:98,correctWords:5,incorrectWords:1});
+assert.equal(assessPractice(remainingTypo,270,alphabet).accepted.length,5);
+const formerlyRejected={...createProgress(),samplePolicy:3,history:[{...remainingTypo,practiceSample:{goal:270,accepted:[]}}]};
+ensurePracticeProgress(formerlyRejected,'ru',270);
+assert(Object.values(formerlyRejected.letters).every(k=>k.samples===1));
+ensurePracticeProgress(formerlyRejected,'ru',270);
+assert(Object.values(formerlyRejected.letters).every(k=>k.samples===1),'reassessment does not duplicate samples');
+const different=createProgress(),differentKeys=structuredClone(correct.keys);
+differentKeys.о.avgMs=200;differentKeys.о.latencies=[200,200];
+differentKeys.а.avgMs=500;differentKeys.а.latencies=[500,500];
+savePractice(different,withSpeed(150,{keys:differentKeys}),'ru',goal);
+assert.equal(letterSpeed(different,'о',goal).cpm,300);
+assert.equal(letterSpeed(different,'а',goal).cpm,120);
+const noTiming=createProgress();noTiming.history=[withSpeed(250,{keys:{о:{correct:2,errors:0,avgMs:null,latencies:[]}}})];
+assert.equal(letterSpeed(noTiming,'о',goal).count,0,'no fabricated speed without an interval');
+console.log('Passed: independent letter speeds, missing timing, remaining typo and idempotent reassessment.');
