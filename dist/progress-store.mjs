@@ -14,7 +14,7 @@ function mergeItems(base=[],local=[],remote=[]){
 export function mergePreferences(base,local,remote){
  const result=ensureLearning(clone(remote));
  for(const [key,value] of Object.entries(local.settings)){
-  if(key==='layouts'){for(const [lang,layout] of Object.entries(value))if(!same(base.settings.layouts?.[lang],layout))result.settings.layouts[lang]=layout;}
+  if(key==='layouts'||key==='excludedLetters'){for(const [lang,layout] of Object.entries(value))if(!same(base.settings[key]?.[lang],layout)){result.settings[key]??={};result.settings[key][lang]=layout;}}
   else if(!same(base.settings[key],value))result.settings[key]=clone(value);
  }
  result.library=mergeItems(base.library,local.library,result.library);result.trash=mergeItems(base.trash,local.trash,result.trash);

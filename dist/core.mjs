@@ -153,7 +153,7 @@ export function practiceMaterial(lang,letters,focus,random=Math.random,{everyWor
  const valid=w=>w.length>=2&&w.length<=8&&[...w].every(c=>letters.includes(c)),extra=lang==='ru'?['анне','неона','неоне','анион','аниона','анионе','иона','ионе','нони']:[],real=[...new Set([...wordPool(lang,letters),...extra])].filter(valid),invented=syllableWords(lang,letters,focus,random);
  if(everyWordFocus&&focus&&letters.includes(focus)){
   const pool=[...new Set([...real,...invented])].filter(w=>valid(w)&&w.includes(focus));
-  if(!pool.length)throw new Error('Нет слов для выбранной буквы.');
+  if(!pool.length)return {words:keyDrills(letters,PRACTICE_WORD_COUNT,random).map(w=>w.includes(focus)?w:(focus+w).slice(0,8)),type:'drill',available:0,note:'16 коротких сочетаний выбранных клавиш. Буква «'+focus.toUpperCase()+'» есть в каждом сочетании.'};
   const used=new Map(),words=[],lengths=[2,3,4,5,6,7,8,3,4,5,6,7,8,2,4,6],offset=randomIndex(lengths.length,random);
   for(let i=0;i<PRACTICE_WORD_COUNT;i++){
    let choices=pool.filter(w=>w.length===lengths[(i+offset)%lengths.length]&&w!==words.at(-1));
