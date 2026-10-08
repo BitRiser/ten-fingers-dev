@@ -95,15 +95,19 @@ function selectTrainingLanguage(lang,startPractice=false){
  persist();render();
 }
 
-let practiceLettersDraft=null;
+let practiceLettersDraft=null,practiceLettersOwner=null;
 function selectedPractice(){return practiceSelection(settings.language,p(),settings.speedGoal,settings.excludedLetters?.[settings.language]||'',forcedFocus);}
 function showPracticeLetters(reset=true){
- const selected=selectedPractice();if(reset)practiceLettersDraft=new Set(selected.letters);
+ const selected=selectedPractice();
+ if(reset||practiceLettersOwner?.lang!==settings.language){practiceLettersDraft=new Set(selected.letters);practiceLettersOwner={lang:settings.language,available:new Set(selected.available)};}
+ else{for(const c of selected.available)if(!practiceLettersOwner.available.has(c)&&selected.letters.includes(c))practiceLettersDraft.add(c);practiceLettersOwner.available=new Set(selected.available);for(const c of practiceLettersDraft)if(!practiceLettersOwner.available.has(c))practiceLettersDraft.delete(c);}
  settingsInDialog=false;
  openDialog('Буквы в тексте · '+language().code,`<p class="practice-letter-help">Нажми на букву, чтобы убрать или вернуть её. В заданиях будут только включённые буквы.</p><div class="practice-letter-picker" role="group" aria-label="Буквы для практики">${[...language().alphabet].map((c,i)=>{const locked=i>=p().unlocked,on=practiceLettersDraft.has(c);return `<button class="${on?'selected':''}" data-practice-toggle="${esc(c)}" aria-label="Буква ${esc(c.toUpperCase())}" aria-pressed="${on}" ${locked?'disabled':''}>${esc(c.toUpperCase())}<small>${locked?'🔒':on?'✓':'−'}</small></button>`}).join('')}</div><p class="practice-letter-help">Включено ${practiceLettersDraft.size} из ${p().unlocked}. Оставь хотя бы одну букву. Новые буквы появляются после открытия.</p><p class="practice-letter-help">Исключение не стирает прогресс. Для открытия следующих букв по-прежнему нужны образцы всех доступных букв.</p><div class="dialog-footer"><button class="soft-button" data-action="practice-letters-all">Вернуть все</button><button class="primary-button" data-action="apply-practice-letters">Применить · новый текст</button></div>`);
 }
 function applyPracticeLetters(){
- const alphabet=[...language().alphabet],available=alphabet.slice(0,p().unlocked);
+ if(practiceLettersOwner?.lang!==settings.language){showPracticeLetters();toast('Язык изменился. Выбери буквы для текущего языка.');return;}
+ const selected=selectedPractice();for(const c of selected.available)if(!practiceLettersOwner.available.has(c)&&selected.letters.includes(c))practiceLettersDraft.add(c);
+ const alphabet=[...language().alphabet];
  if(!practiceLettersDraft?.size){toast('Оставь хотя бы одну букву.');return;}
  const old=settings.excludedLetters?.[settings.language]||'';
  settings.excludedLetters={...settings.excludedLetters,[settings.language]:alphabet.filter((c,i)=>i>=p().unlocked?old.includes(c):!practiceLettersDraft.has(c)).join('')};
