@@ -1,12 +1,13 @@
 import {keyboardMarkup,updateKeyboard,pressKeyboard} from './keyboard.mjs';
 const settings={keyboard:true,hands:true,handsMotion:true,hintMode:'always',keyboardSwitch:'mac',soundMode:'off'};
 export const DEMO_TEXTS=['const speed = 400;', 'return users.map(format);', 'if (ready) start();', 'let count = items.length;', 'await loadProject();', 'for (const key of keys)', 'print("hello, world")', 'vector<int> values;', 'const total = sum(data);', 'console.log("done");'];
+export const DEMO_HOLD_SECONDS=12,DEMO_CYCLE_SECONDS=20+DEMO_HOLD_SECONDS;
 let demoTextIndex=-1;
 export function nextDemoText(previous='',random=Math.random){const choices=DEMO_TEXTS.filter(text=>text!==previous&&text!==DEMO_TEXTS[demoTextIndex]);const text=choices[Math.min(choices.length-1,Math.floor(random()*choices.length))];demoTextIndex=DEMO_TEXTS.indexOf(text);return text;}
 export function homeDemoMarkup(){return `<figure class="home-demo" aria-label="От медленных нажатий к уверенному набору"><div class="demo-heading"><span>Так растёт твой навык</span><span class="demo-speed">35 CPM</span></div><div class="demo-source"><code><span class="demo-typed"></span><i aria-hidden="true"></i></code></div><div class="demo-keyboard">${keyboardMarkup('qwerty',settings)}</div><figcaption><span class="demo-phase">Первые нажатия · можно ошибаться</span><div class="demo-progress" aria-hidden="true"><i></i></div></figcaption></figure>`;}
 export function demoState(seconds){
  const elapsed=Math.max(0,Math.min(20,seconds)),cpm=elapsed<6?35+elapsed*5:elapsed<12?65+(elapsed-6)*22.5:200+(elapsed-12)*25;
- return {cpm:Math.round(cpm),phase:elapsed<6?'Первые нажатия · можно ошибаться':elapsed<12?'Находим ритм · меньше ошибок':'Пишем уверенно · до 400 CPM',mistakes:elapsed<6,progress:elapsed/20};
+ return {cpm:Math.round(cpm),phase:elapsed<6?'Первые нажатия · можно ошибаться':elapsed<12?'Находим ритм · меньше ошибок':seconds>=20?'Ровный темп · 400 CPM':'Пишем уверенно · до 400 CPM',mistakes:elapsed<6,progress:elapsed/20};
 }
 export function mountHomeDemo(root){
  const demo=root.querySelector('.home-demo');if(!demo)return ()=>{};
@@ -15,10 +16,9 @@ export function mountHomeDemo(root){
  updateKeyboard(keyboard,'qwerty',text[0],settings);
  function tick(now){
   if(!demo.isConnected)return;
-  if(start===null)start=now;const seconds=((now-start)/1000)%22,state=demoState(seconds);
+  if(start===null)start=now;const seconds=((now-start)/1000)%DEMO_CYCLE_SECONDS,state=demoState(seconds);
   speed.textContent=state.cpm+' CPM';phase.textContent=state.phase;bar.style.width=state.progress*100+'%';demo.classList.toggle('demo-beginner',state.mistakes);
-  if(seconds>=20){if(index){text=nextDemoText(text);index=0;output.textContent='';}last=now;}
-  else if(now-last>=60000/state.cpm){
+  if(now-last>=60000/state.cpm){
    if(index>=text.length){index=0;text=nextDemoText(text);output.textContent='';}
    const char=text[index],wrong=state.mistakes&&index%3===1;
    pressKeyboard(keyboard,'qwerty',wrong?'x':char,settings,{wrong});

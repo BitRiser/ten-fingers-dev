@@ -27,7 +27,7 @@ const sql={async query(query,args=[]){
  if(query.startsWith('UPDATE typing_progress')){assert(query.includes('WHERE user_id=$1 AND revision=$3'));const p=progress.get(args[0]);if(!p||p.revision!==args[2])return [];p.data=JSON.parse(args[1]);return [{revision:++p.revision}];}
  throw Error('Unexpected query');
 }};
-const deps={database:async()=>sql,currentUser,rateLimit:async()=>{},configured:()=>true};
+const deps={database:async()=>sql,currentUser,rateLimit:async()=>{},configured:()=>true,updateScores:async()=>{}};
 const account=accountHandler(deps),save=progressHandler(deps);
 async function call(handler,method,value,session,override={}){let payload;const res={headers:{},setHeader(k,v){this.headers[k]=v;},end(v){payload=JSON.parse(v);}};await handler({method,headers:{...headers,...(session?{cookie:session}:{}),...override},body:value},res);return {status:res.statusCode,headers:res.headers,...payload};}
 assert.equal((await call(account,'POST',{action:'register'},null,{origin:'https://evil.com'})).status,403);

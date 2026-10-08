@@ -6,6 +6,8 @@ export async function database(){
  if(!client){const {neon}=await import('@neondatabase/serverless');client=neon(process.env.DATABASE_URL||process.env.POSTGRES_URL);}
  if(!ready)ready=(async()=>{
   await client.query('CREATE TABLE IF NOT EXISTS typing_users (id uuid PRIMARY KEY, username text UNIQUE NOT NULL, password_hash text NOT NULL, created_at timestamptz NOT NULL DEFAULT now())');
+  await client.query('ALTER TABLE typing_users ADD COLUMN IF NOT EXISTS leaderboard_visible boolean NOT NULL DEFAULT false');
+  await client.query('CREATE TABLE IF NOT EXISTS typing_rank_scores (user_id uuid NOT NULL REFERENCES typing_users(id) ON DELETE CASCADE, lang text NOT NULL, cpm integer NOT NULL, accuracy double precision NOT NULL, achieved_at bigint NOT NULL, PRIMARY KEY(user_id,lang))');
   await client.query('CREATE TABLE IF NOT EXISTS typing_sessions (token_hash text PRIMARY KEY, user_id uuid NOT NULL REFERENCES typing_users(id) ON DELETE CASCADE, expires_at timestamptz NOT NULL)');
   await client.query('CREATE TABLE IF NOT EXISTS typing_progress (user_id uuid PRIMARY KEY REFERENCES typing_users(id) ON DELETE CASCADE, data jsonb NOT NULL, revision bigint NOT NULL DEFAULT 1, updated_at timestamptz NOT NULL DEFAULT now())');
   await client.query('CREATE TABLE IF NOT EXISTS typing_rate_limits (key text NOT NULL, bucket bigint NOT NULL, hits integer NOT NULL, expires_at timestamptz NOT NULL, PRIMARY KEY(key,bucket))');

@@ -1,0 +1,15 @@
+const esc=value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+export function leaderboardMarkup(){return `<section class="leaderboard" aria-label="Пробный рейтинг скорости"><div class="leaderboard-heading"><h3>Рейтинг скорости <small>BETA</small></h3><span>Топ-10 · RU / EN отдельно</span></div><p>60 секунд · только слова · точность от 95% · без пауз и подсказок.</p><div id="leaderboardRows" aria-live="polite">Загружаем рейтинг…</div></section>`;}
+export function createLeaderboard({getUser,getLang,startTest,openLogin,toast}){
+ let state,root,serial=0;
+ async function refresh(visible){
+ const owned=++serial,container=document.getElementById('leaderboardRows');root=container;if(!container)return;
+ const lang=getLang()==='en'?'en':'ru';
+ try{const response=await fetch('/api/leaderboard?lang='+lang,{credentials:'same-origin',...(typeof visible==='boolean'?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({visible})}:{})});const result=await response.json();if(!response.ok)throw Error(result.error||'Рейтинг пока недоступен.');if(owned!==serial||!container.isConnected)return;state=result;
+ const row=r=>`<tr class="${r.you?'ranking-you':''}"><td>${r.place}</td><td>${esc(r.username)}${r.you?' <small>ты</small>':''}</td><td><b>${r.cpm}</b> CPM</td><td>${Math.round(r.accuracy)}%</td></tr>`;
+ container.innerHTML=(result.rows.length?`<div class="table-wrap"><table><thead><tr><th>Место</th><th>Участник · ${lang.toUpperCase()}</th><th>Скорость</th><th>Точность</th></tr></thead><tbody>${result.rows.map(row).join('')}${result.own&&!result.rows.some(r=>r.you)?row(result.own):''}</tbody></table></div>`:'<div class="leaderboard-empty">Пока нет участников. Первый результат может стать твоим.</div>')+`<div class="ranking-actions"><button class="primary-button" data-leaderboard="test">Пройти тест на 60 сек →</button>${getUser()?`<button class="soft-button" data-leaderboard="${result.visible?'leave':'join'}">${result.visible?'Убрать меня из рейтинга':'Участвовать в рейтинге'}</button>`:'<button class="soft-button" data-leaderboard="login">Войти для участия</button>'}<button class="icon-button" data-leaderboard="refresh" aria-label="Обновить рейтинг">↻</button></div><p class="ranking-note">${result.visible&&!result.own?'Участие включено. Заверши подходящий тест, чтобы появиться в списке. ':''}Участие публикует твой логин и лучший результат. Пробный рейтинг без полноценного античита.</p>`;
+ }catch(error){if(owned!==serial||!container.isConnected)return;container.innerHTML=`<p>${esc(error.message)}</p><button class="soft-button" data-leaderboard="refresh">Повторить</button>`;}
+ }
+ async function handle(action){if(action==='test'){startTest();return;}if(action==='login'){openLogin();return;}if(action==='join'||action==='leave'){if(!getUser()){openLogin();return;}root?.querySelectorAll('button').forEach(b=>b.disabled=true);await refresh(action==='join');return;}await refresh();}
+ return {mount:()=>refresh(),handle};
+}
