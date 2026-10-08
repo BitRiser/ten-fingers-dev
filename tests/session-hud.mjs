@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {TypingSession} from '../dist/core.mjs';
+import {sessionProgress} from '../dist/session-hud.mjs';
+let now=0;const s=new TypingSession(['hello','code'],{now:()=>now});assert.equal(sessionProgress(s),0);
+now=100;s.setValue('he');assert.equal(sessionProgress(s),.2);
+now=200;s.setValue('hello');assert.equal(sessionProgress(s),.5);s.nextWord();assert.equal(sessionProgress(s),.5);
+s.setValue('c');assert.equal(sessionProgress(s),.625);s.setValue('');assert.equal(sessionProgress(s),.5,'Correction reduces current position');
+s.setValue('code');s.nextWord();assert.equal(sessionProgress(s),1);
+const timed=new TypingSession(['text'],{now:()=>now,mode:'time',seconds:10});now=0;timed.setValue('t');now=4000;assert.equal(sessionProgress(timed),.4);timed.pause();now=8000;assert.equal(sessionProgress(timed),.4,'Pause does not advance progress');
+console.log('Passed: live progress within a word, correction, completion, time mode and pause.');
