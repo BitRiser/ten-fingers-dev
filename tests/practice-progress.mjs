@@ -38,9 +38,14 @@ assert.equal(p.unlocked,5);assert.ok(Object.values(p.letters).every(k=>confidenc
 savePractice(p,withSpeed(249.999),'ru',goal);assert.equal(p.unlocked,5);assert.ok(Object.values(p.letters).every(k=>confidence(k,goal)===99),'Rounding cannot cross the full goal');
 assert.equal(savePractice(p,withSpeed(250),'ru',goal),LANGUAGES.ru.alphabet[5]);
 assert.equal(p.unlocked,6);
-// Three full-quality attempts open the next letter; two cannot.
-const three=createProgress();for(let i=0;i<2;i++)savePractice(three,withSpeed(250),'ru',goal);assert.equal(three.unlocked,5);assert.ok(Object.values(three.letters).every(k=>confidence(k,goal)===0));
-assert.equal(savePractice(three,withSpeed(250),'ru',goal),LANGUAGES.ru.alphabet[5]);assert.equal(three.unlocked,6);
+// One qualifying attempt is sufficient; historical counters are irrelevant.
+const single=createProgress();assert.equal(savePractice(single,withSpeed(250),'ru',goal),LANGUAGES.ru.alphabet[5]);assert.equal(single.unlocked,6);
+const {practiceUnlockStatus}=await import('../dist/core.mjs');
+const blocked=createProgress();assert.equal(practiceUnlockStatus(blocked,'ru',goal).pending.length,5);
+savePractice(blocked,withSpeed(175),'ru',goal);assert(practiceUnlockStatus(blocked,'ru',goal).pending.every(item=>item.reason==='speed'&&item.percent===70));
+blocked.letters.о.lastAccuracy=50;assert.equal(practiceUnlockStatus(blocked,'ru',goal).pending.find(item=>item.letter==='о').reason,'accuracy');
+for(const k of Object.values(blocked.letters)){k.samples=0;k.lastCPM=250;k.lastAccuracy=100;k.lastQualified=true;}
+assert.equal(practiceUnlockStatus(blocked,'ru',goal).ready,true);
 // Very fast transitions and good final text cannot compensate for poor input accuracy.
 for(const changes of [{accuracy:84.999},{firstAttemptAccuracy:84.999},{incorrectWords:1,correctWords:4},{finalAccuracy:84.999}]){
  const q=createProgress();for(let i=0;i<8;i++)savePractice(q,withSpeed(3000,changes),'ru',goal);

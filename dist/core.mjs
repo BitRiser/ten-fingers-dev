@@ -11,7 +11,7 @@ export function lessonThreshold(ctx){
 }
 export function createProgress(){return {unlocked:5,letters:{},history:[],lessons:{},lessonHistory:[],tests:[],samplePolicy:PRACTICE_POLICY}}
 export function confidence(key,goal){
- if(!key||key.samples<REQUIRED_SAMPLES||!key.lastQualified||key.lastAccuracy<SAMPLE_ACCURACY||!Number.isFinite(goal)||goal<=0)return 0;
+ if(!key||!key.lastQualified||key.lastAccuracy<SAMPLE_ACCURACY||!Number.isFinite(goal)||goal<=0)return 0;
  // Rounding 99.9% up to 100% must never open a letter below the actual goal.
  return Math.max(0,Math.min(100,Math.floor(key.lastCPM/goal*100)));
 }
@@ -46,7 +46,12 @@ export function weakestLetter(progress,lang,goal){
  const measured=[...LANGUAGES[lang].alphabet].slice(0,progress.unlocked).map(letter=>({letter,...letterSpeed(progress,letter,goal)})).filter(item=>item.count>0);
  return measured.sort((a,b)=>a.cpm-b.cpm||b.count-a.count)[0]||null;
 }
-export function targetLetter(progress,lang,goal){let active=[...LANGUAGES[lang].alphabet].slice(0,progress.unlocked);return active.find(c=>!progress.letters[c]||progress.letters[c].samples<REQUIRED_SAMPLES)||active.reduce((a,c)=>confidence(progress.letters[c],goal)<confidence(progress.letters[a],goal)?c:a,active[0])}
+export function practiceUnlockStatus(progress,lang,goal){
+ const alphabet=[...LANGUAGES[lang].alphabet],active=alphabet.slice(0,progress.unlocked);
+ const pending=active.filter(c=>confidence(progress.letters[c],goal)<100).map(letter=>{const key=progress.letters[letter];return {letter,reason:!key||!key.lastCPM?'measurement':key.lastAccuracy<SAMPLE_ACCURACY?'accuracy':key.lastCPM<goal?'speed':!key.lastQualified?'quality':'speed',percent:goal>0?Math.min(100,Math.floor((key?.lastCPM||0)/goal*100)):0};});
+ return {next:alphabet[progress.unlocked]||null,pending,ready:pending.length===0};
+}
+export function targetLetter(progress,lang,goal){let active=[...LANGUAGES[lang].alphabet].slice(0,progress.unlocked);return active.find(c=>!progress.letters[c])||active.reduce((a,c)=>confidence(progress.letters[c],goal)<confidence(progress.letters[a],goal)?c:a,active[0])}
 export function assessPractice(result,goal,letters){
  const floor=goal*SAMPLE_SPEED_RATIO,reasons=[],keys={},accepted=[];
  if(!Number.isFinite(goal)||goal<=0||!Number.isFinite(result.cpm)||result.cpm<0||!Number.isFinite(result.duration)||result.duration<=0)reasons.push('measurement');
