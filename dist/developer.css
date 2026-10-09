@@ -544,7 +544,7 @@ dialog.onboarding-dialog{width:min(750px,calc(100vw - 28px));padding:28px 32px;m
 .keyboard-sound-button{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--nav);padding:8px 12px;border-radius:5px;font-size:10px;min-height:34px}
 .switch-profile-dot{width:8px;height:8px;background:var(--switch-color,#91a3b6);border-radius:2px;display:inline-block}
 .sound-mode-value{color:var(--muted);padding-left:10px;border-left:1px solid var(--line)}
-.mac-keyboard .key-cap.pressed rect{stroke:var(--switch-color);fill:var(--switch-color)}
+.mac-keyboard .key-cap.pressed rect{stroke:var(--accent);fill:var(--accent)}
 .sound-settings-heading{margin-bottom:22px}.sound-settings-heading h3{font-size:23px;margin:6px 0 10px}.sound-settings-heading>p:last-child{font-size:12px;color:var(--muted);line-height:1.8}
 .sound-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:28px}
 .sound-mode-card{display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left;padding:18px 16px;border:1px solid var(--line);background:var(--nav);border-radius:6px}

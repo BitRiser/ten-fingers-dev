@@ -31,21 +31,14 @@ for(const attempt of [allWrong,skipped,correctedSpam]){
 const correct=typeExercise();assert.equal(correct.cpm,goal);
 assert.ok([...alphabet].every(c=>correct.keys[c].correct>=2&&correct.keys[c].avgMs),'Generated exercise measures every available letter');
 const withSpeed=(cpm,changes={})=>({...correct,sessionId:crypto.randomUUID(),cpm,...changes});
-let p=createProgress();savePractice(p,withSpeed(174.999),'ru',goal);assert.ok(Object.values(p.letters).every(k=>k.samples===0));
-savePractice(p,withSpeed(175),'ru',goal);assert.ok(Object.values(p.letters).every(k=>k.samples===1),'Exactly 70% qualifies');
-for(let i=0;i<2;i++)savePractice(p,withSpeed(175),'ru',goal);
-assert.equal(p.unlocked,5);assert.ok(Object.values(p.letters).every(k=>confidence(k,goal)===70),'70% builds samples but cannot open a letter');
-savePractice(p,withSpeed(249.999),'ru',goal);assert.equal(p.unlocked,5);assert.ok(Object.values(p.letters).every(k=>confidence(k,goal)===99),'Rounding cannot cross the full goal');
-assert.equal(savePractice(p,withSpeed(250),'ru',goal),LANGUAGES.ru.alphabet[5]);
-assert.equal(p.unlocked,6);
-// One qualifying attempt is sufficient; historical counters are irrelevant.
-const single=createProgress();assert.equal(savePractice(single,withSpeed(250),'ru',goal),LANGUAGES.ru.alphabet[5]);assert.equal(single.unlocked,6);
+// Accurate slow practice opens a letter without any per-letter or total speed gate.
+for(const cpm of [1,50,174.999,175,249.999,250]){const p=createProgress();assert.equal(savePractice(p,withSpeed(cpm),'ru',goal),LANGUAGES.ru.alphabet[5]);assert.equal(p.unlocked,6);}
 const {practiceUnlockStatus}=await import('../dist/core.mjs');
 const blocked=createProgress();assert.equal(practiceUnlockStatus(blocked,'ru',goal).pending.length,5);
-savePractice(blocked,withSpeed(175),'ru',goal);assert(practiceUnlockStatus(blocked,'ru',goal).pending.every(item=>item.reason==='speed'&&item.percent===70));
+const slowKeys=structuredClone(correct.keys);for(const k of Object.values(slowKeys)){k.avgMs=5000;k.latencies=[5000,5000];}
+assert.equal(savePractice(createProgress(),withSpeed(10,{keys:slowKeys}),'ru',goal),LANGUAGES.ru.alphabet[5],'Long genuine intervals are not a hidden speed gate');
+savePractice(blocked,withSpeed(1),'ru',goal);assert.equal(practiceUnlockStatus(blocked,'ru',goal).pending.length,1,'Only newly unlocked unmeasured letter is pending');
 blocked.letters.о.lastAccuracy=50;assert.equal(practiceUnlockStatus(blocked,'ru',goal).pending.find(item=>item.letter==='о').reason,'accuracy');
-for(const k of Object.values(blocked.letters)){k.samples=0;k.lastCPM=250;k.lastAccuracy=100;k.lastQualified=true;}
-assert.equal(practiceUnlockStatus(blocked,'ru',goal).ready,true);
 // Very fast transitions and good final text cannot compensate for poor input accuracy.
 for(const changes of [{accuracy:84.999},{firstAttemptAccuracy:84.999},{incorrectWords:1,correctWords:4},{finalAccuracy:84.999}]){
  const q=createProgress();for(let i=0;i<8;i++)savePractice(q,withSpeed(3000,changes),'ru',goal);
@@ -70,7 +63,7 @@ for(const [field,value] of [['finalAccuracy',lessonTarget.accuracy-.001],['first
 }
 const fastKeys=Object.fromEntries(Object.entries(correct.keys).map(([c,k])=>[c,{...k,avgMs:20,latencies:[20,20]}]));
 const capped=createProgress();for(let i=0;i<5;i++)savePractice(capped,withSpeed(175,{keys:fastKeys}),'ru',goal);
-assert.equal(capped.unlocked,5);assert.ok(Object.values(capped.letters).every(k=>k.lastCPM===175),'Per-letter speed never exceeds the complete exercise');
+assert.equal(capped.unlocked,6);assert.ok(Object.values(capped.letters).every(k=>k.lastCPM===175),'Per-letter speed never exceeds the complete exercise');
 const inaccurateKey=structuredClone(correct.keys);inaccurateKey.о.errors=1000;
 const keyGate=assessPractice(withSpeed(3000,{keys:inaccurateKey}),goal,alphabet);assert.ok(!keyGate.accepted.includes('о'),'Local accuracy gate is independent of speed');
 const few=structuredClone(correct.keys);few.о.correct=1;
@@ -79,7 +72,7 @@ assert.ok(!assessPractice(withSpeed(250,{keys:few}),goal,alphabet).accepted.incl
 const replay=createProgress(),one=withSpeed(175);savePractice(replay,one,'ru',goal);savePractice(replay,one,'ru',goal);
 assert.equal(replay.history.length,1);assert.ok(Object.values(replay.letters).every(k=>k.samples===1));
 // An inaccurate attempt cannot trigger an unlock using earlier qualifying counters.
-const previous=createProgress();for(let i=0;i<5;i++)savePractice(previous,withSpeed(175),'ru',goal);
+const previous=createProgress();for(let i=0;i<5;i++)savePractice(previous,withSpeed(175,{accuracy:50}),'ru',goal);
 for(const k of Object.values(previous.letters)){k.lastCPM=250;k.lastQualified=true;}
 savePractice(previous,{...allWrong,sessionId:crypto.randomUUID()},'ru',goal);assert.equal(previous.unlocked,5);
 // Existing legitimate history is reassessed once; available letters/history remain intact.
@@ -97,7 +90,7 @@ const ctx={kind:'practice',lang:'ru',layout:'йцукен',rules:{speedGoal:250}
 await store.complete(attempt,ctx);await store.complete(attempt,ctx);
 const saved=parseBackup(backupData(JSON.parse(values.get(STORAGE_KEY)))),profile=progressFor(saved,'ru','йцукен');
 assert.equal(profile.history.length,1);assert.equal(profile.history[0].practiceSample.floor,175);assert.ok(Object.values(profile.letters).every(k=>k.samples===1));
-console.log('Passed: wrong-key spam, skipped words, correction spam, exact 70%/85% gates, full-goal unlock, unrounded boundary, per-key accuracy, bounded speed, minimum observations, history migration, idempotence, durable storage and backup.');
+console.log('Passed: wrong-key spam, skipped words, correction spam, 85% accuracy gate, speed-independent unlock, slow measured input, per-key accuracy, bounded speed, minimum observations, history migration, idempotence, durable storage and backup.');
 // Letter colors use a rolling mean across the last five distinct attempts.
 const rolling=createProgress();
 for(const cpm of [10,100,150,200,250,300])savePractice(rolling,withSpeed(cpm),'ru',goal);

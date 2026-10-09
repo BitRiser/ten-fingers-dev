@@ -11,9 +11,7 @@ export function lessonThreshold(ctx){
 }
 export function createProgress(){return {unlocked:5,letters:{},history:[],lessons:{},lessonHistory:[],tests:[],samplePolicy:PRACTICE_POLICY}}
 export function confidence(key,goal){
- if(!key||!key.lastQualified||key.lastAccuracy<SAMPLE_ACCURACY||!Number.isFinite(goal)||goal<=0)return 0;
- // Rounding 99.9% up to 100% must never open a letter below the actual goal.
- return Math.max(0,Math.min(100,Math.floor(key.lastCPM/goal*100)));
+ return key?.lastQualified&&key.lastAccuracy>=SAMPLE_ACCURACY?100:0;
 }
 // Estimated mastery is anchored to the real session pace, never the inverse
 // of one quick key transition. Delays and errors reduce the estimate.
@@ -48,7 +46,7 @@ export function weakestLetter(progress,lang,goal){
 }
 export function practiceUnlockStatus(progress,lang,goal){
  const alphabet=[...LANGUAGES[lang].alphabet],active=alphabet.slice(0,progress.unlocked);
- const pending=active.filter(c=>confidence(progress.letters[c],goal)<100).map(letter=>{const key=progress.letters[letter];return {letter,reason:!key||!key.lastCPM?'measurement':key.lastAccuracy<SAMPLE_ACCURACY?'accuracy':key.lastCPM<goal?'speed':!key.lastQualified?'quality':'speed',percent:goal>0?Math.min(100,Math.floor((key?.lastCPM||0)/goal*100)):0};});
+ const pending=active.filter(c=>confidence(progress.letters[c],goal)<100).map(letter=>{const key=progress.letters[letter];return {letter,reason:!key||!key.correct?'measurement':key.lastAccuracy<SAMPLE_ACCURACY?'accuracy':'quality'};});
  return {next:alphabet[progress.unlocked]||null,pending,ready:pending.length===0};
 }
 export function targetLetter(progress,lang,goal){let active=[...LANGUAGES[lang].alphabet].slice(0,progress.unlocked);return active.find(c=>!progress.letters[c])||active.reduce((a,c)=>confidence(progress.letters[c],goal)<confidence(progress.letters[a],goal)?c:a,active[0])}
@@ -57,15 +55,15 @@ export function assessPractice(result,goal,letters){
  if(!Number.isFinite(goal)||goal<=0||!Number.isFinite(result.cpm)||result.cpm<0||!Number.isFinite(result.duration)||result.duration<=0)reasons.push('measurement');
  if(!Number.isFinite(result.accuracy)||result.accuracy<SAMPLE_ACCURACY||!Number.isFinite(result.firstAttemptAccuracy)||result.firstAttemptAccuracy<SAMPLE_ACCURACY||!Number.isFinite(result.finalAccuracy)||result.finalAccuracy<SAMPLE_ACCURACY)reasons.push('accuracy');
  if(!Number.isInteger(result.wordCount)||result.wordCount<1||result.correctWords+result.incorrectWords!==result.wordCount)reasons.push('unfinished');
- if(result.cpm<floor)reasons.push('speed');
+
  for(const [letter,data] of Object.entries(result.keys||{})){
   if(!letters.includes(letter))continue;
   const correct=Number.isFinite(data.correct)?data.correct:0,errors=Number.isFinite(data.errors)?data.errors:0;
   const accuracy=correct/Math.max(1,correct+errors)*100;
-  const measured=correct>=2&&Number.isFinite(data.avgMs)&&data.avgMs>=20&&data.avgMs<=2000&&Array.isArray(data.latencies)&&data.latencies.some(ms=>Number.isFinite(ms)&&ms>=20&&ms<=2000);
+  const measured=correct>=2&&Number.isFinite(data.avgMs)&&data.avgMs>0&&Array.isArray(data.latencies)&&data.latencies.some(ms=>Number.isFinite(ms)&&ms>0);
   // A short, fast burst cannot hide slow typing, corrections, or skipped words.
   const cpm=measured&&Number.isFinite(result.cpm)&&result.cpm>=0?Math.min(60000/data.avgMs,result.cpm):0;
-  const qualified=!reasons.length&&measured&&accuracy>=SAMPLE_ACCURACY&&cpm>=floor;
+  const qualified=!reasons.length&&measured&&accuracy>=SAMPLE_ACCURACY;
   keys[letter]={cpm,accuracy:Math.min(accuracy,result.accuracy||0,result.firstAttemptAccuracy||0),measured,qualified,correct,errors};
   if(qualified)accepted.push(letter);
  }
@@ -225,8 +223,8 @@ export function lessonWords(info,lang,random=Math.random){
  const max=Math.min(8,group<2?3:group<5?4:group<8?6:8),real=wordPool(lang,learned).filter(w=>w.length<=max),pool=real.length>=6?real:[...new Set([...real,...syllableWords(lang,learned,null,random).filter(w=>w.length<=max)])];
  if(!pool.length)return keyDrills(learned,count,random).map(w=>w.slice(0,max));
  const words=[],uses=new Map(),focus=fresh[step%fresh.length];
- for(let i=0;i<count;i++){let choices=pool.filter(w=>w!==words.at(-1)&&(!(i%2===0)||w.includes(focus)));if(!choices.length)choices=pool.filter(w=>w!==words.at(-1));if(!choices.length)choices=pool;const min=Math.min(...choices.map(w=>uses.get(w)||0));choices=choices.filter(w=>(uses.get(w)||0)===min);if(i===0){const openingKey=lang+':'+letters+':'+focus,previous=lastFocusedOpening.get(openingKey);let varied=choices.filter(w=>w!==previous&&!['он','она','они'].includes(w));if(!varied.length)varied=pool.filter(w=>w!==previous&&!['он','она','они'].includes(w));if(varied.length)choices=varied;}
-   const word=choices[randomIndex(choices.length,random)];if(i===0)lastFocusedOpening.set(lang+':'+letters+':'+focus,word);words.push(word);uses.set(word,(uses.get(word)||0)+1);}
+ for(let i=0;i<count;i++){let choices=pool.filter(w=>w!==words.at(-1)&&(!(i%2===0)||w.includes(focus)));if(!choices.length)choices=pool.filter(w=>w!==words.at(-1));if(!choices.length)choices=pool;const min=Math.min(...choices.map(w=>uses.get(w)||0));choices=choices.filter(w=>(uses.get(w)||0)===min);const word=choices[randomIndex(choices.length,random)];words.push(word);uses.set(word,(uses.get(word)||0)+1);}
+
  return words;
 }
 // Alignment keeps a single insertion from turning the rest of a word into errors.
