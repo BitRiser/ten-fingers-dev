@@ -154,6 +154,7 @@ const PRACTICE_FRAMES={
  en:[['at','the'],['the','tea'],['eat','the'],['the','heat'],['we','have'],['they','read'],['this','is'],['we','write']],
  fr:[['il','est'],['elle','est'],['nous','avons'],['avec','les']]
 };
+const lastFocusedOpening=new Map();
 export function practiceMaterial(lang,letters,focus,random=Math.random,{everyWordFocus=false}={}){
  const valid=w=>w.length>=2&&w.length<=8&&[...w].every(c=>letters.includes(c)),extra=lang==='ru'?['анне','неона','неоне','анион','аниона','анионе','иона','ионе','нони']:[],real=[...new Set([...wordPool(lang,letters),...extra])].filter(valid),invented=syllableWords(lang,letters,focus,random);
  if(everyWordFocus&&focus&&letters.includes(focus)){
@@ -166,7 +167,8 @@ export function practiceMaterial(lang,letters,focus,random=Math.random,{everyWor
    if(!choices.length)choices=pool;
    const least=Math.min(...choices.map(w=>used.get(w)||0));choices=choices.filter(w=>(used.get(w)||0)===least);
    const realChoices=choices.filter(w=>real.includes(w));if(realChoices.length)choices=realChoices;
-   const word=choices[randomIndex(choices.length,random)];words.push(word);used.set(word,(used.get(word)||0)+1);
+   if(i===0){const openingKey=lang+':'+letters+':'+focus,previous=lastFocusedOpening.get(openingKey);let varied=choices.filter(w=>w!==previous&&!['он','она','они'].includes(w));if(!varied.length)varied=pool.filter(w=>w!==previous&&!['он','она','они'].includes(w));if(varied.length)choices=varied;}
+   const word=choices[randomIndex(choices.length,random)];if(i===0)lastFocusedOpening.set(lang+':'+letters+':'+focus,word);words.push(word);used.set(word,(used.get(word)||0)+1);
   }
   return {words,type:'focused',available:real.length,note:`16 слов · 2–8 букв. Буква «${focus.toUpperCase()}» есть в каждом слове. Настоящие слова и учебные сочетания.`};
  }
@@ -223,7 +225,8 @@ export function lessonWords(info,lang,random=Math.random){
  const max=Math.min(8,group<2?3:group<5?4:group<8?6:8),real=wordPool(lang,learned).filter(w=>w.length<=max),pool=real.length>=6?real:[...new Set([...real,...syllableWords(lang,learned,null,random).filter(w=>w.length<=max)])];
  if(!pool.length)return keyDrills(learned,count,random).map(w=>w.slice(0,max));
  const words=[],uses=new Map(),focus=fresh[step%fresh.length];
- for(let i=0;i<count;i++){let choices=pool.filter(w=>w!==words.at(-1)&&(!(i%2===0)||w.includes(focus)));if(!choices.length)choices=pool.filter(w=>w!==words.at(-1));if(!choices.length)choices=pool;const min=Math.min(...choices.map(w=>uses.get(w)||0));choices=choices.filter(w=>(uses.get(w)||0)===min);const word=choices[randomIndex(choices.length,random)];words.push(word);uses.set(word,(uses.get(word)||0)+1);}
+ for(let i=0;i<count;i++){let choices=pool.filter(w=>w!==words.at(-1)&&(!(i%2===0)||w.includes(focus)));if(!choices.length)choices=pool.filter(w=>w!==words.at(-1));if(!choices.length)choices=pool;const min=Math.min(...choices.map(w=>uses.get(w)||0));choices=choices.filter(w=>(uses.get(w)||0)===min);if(i===0){const openingKey=lang+':'+letters+':'+focus,previous=lastFocusedOpening.get(openingKey);let varied=choices.filter(w=>w!==previous&&!['он','она','они'].includes(w));if(!varied.length)varied=pool.filter(w=>w!==previous&&!['он','она','они'].includes(w));if(varied.length)choices=varied;}
+   const word=choices[randomIndex(choices.length,random)];if(i===0)lastFocusedOpening.set(lang+':'+letters+':'+focus,word);words.push(word);uses.set(word,(uses.get(word)||0)+1);}
  return words;
 }
 // Alignment keeps a single insertion from turning the rest of a word into errors.
