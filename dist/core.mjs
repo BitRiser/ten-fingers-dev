@@ -44,10 +44,15 @@ export function weakestLetter(progress,lang,goal){
  const measured=[...LANGUAGES[lang].alphabet].slice(0,progress.unlocked).map(letter=>({letter,...letterSpeed(progress,letter,goal)})).filter(item=>item.count>0);
  return measured.sort((a,b)=>a.cpm-b.cpm||b.count-a.count)[0]||null;
 }
+export function practiceUnlockAssessment(result,goal){
+ const accuracy=Number.isFinite(result?.accuracy)&&result.accuracy>=SAMPLE_ACCURACY;
+ const speed=Number.isFinite(goal)&&goal>0&&Number.isFinite(result?.cpm)&&result.cpm>=goal;
+ const completed=!!result&&Number.isFinite(result.duration)&&result.duration>0&&Number.isInteger(result.wordCount)&&result.wordCount>0&&result.correctWords+result.incorrectWords===result.wordCount;
+ return {accuracy,speed,completed,ready:accuracy&&speed&&completed};
+}
 export function practiceUnlockStatus(progress,lang,goal){
- const alphabet=[...LANGUAGES[lang].alphabet],active=alphabet.slice(0,progress.unlocked);
- const pending=active.filter(c=>confidence(progress.letters[c],goal)<100).map(letter=>{const key=progress.letters[letter];return {letter,reason:!key||!key.correct?'measurement':'quality'};});
- return {next:alphabet[progress.unlocked]||null,pending,ready:pending.length===0};
+ const alphabet=[...LANGUAGES[lang].alphabet],last=progress.history.at(-1)||null;
+ return {next:alphabet[progress.unlocked]||null,last,...practiceUnlockAssessment(last,goal)};
 }
 export function targetLetter(progress,lang,goal){let active=[...LANGUAGES[lang].alphabet].slice(0,progress.unlocked);return active.find(c=>!progress.letters[c])||active.reduce((a,c)=>confidence(progress.letters[c],goal)<confidence(progress.letters[a],goal)?c:a,active[0])}
 export function assessPractice(result,goal,letters){
@@ -97,7 +102,7 @@ export function savePractice(progress,result,lang,goal){
  const alphabet=[...LANGUAGES[lang].alphabet],active=alphabet.slice(0,progress.unlocked),assessment=assessPractice(result,goal,active);
  const {keys,...summary}=assessment;result.practiceSample={...summary,observed:Object.keys(keys)};recordPracticeKeys(progress,assessment);
  progress.history.push({...result,at:result.at??Date.now()});if(progress.history.length>1500)progress.history.shift();
- if(!assessment.reasons.length&&assessment.accepted.length&&progress.unlocked<alphabet.length&&active.every(c=>confidence(progress.letters[c],goal)===100)){
+ if(practiceUnlockAssessment(result,goal).ready&&progress.unlocked<alphabet.length){
   progress.unlocked++;return alphabet[progress.unlocked-1];
  }
  return null;

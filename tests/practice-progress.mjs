@@ -31,19 +31,17 @@ for(const attempt of [allWrong,skipped,correctedSpam]){
 const correct=typeExercise();assert.equal(correct.cpm,goal);
 assert.ok([...alphabet].every(c=>correct.keys[c].correct>=2&&correct.keys[c].avgMs),'Generated exercise measures every available letter');
 const withSpeed=(cpm,changes={})=>({...correct,sessionId:crypto.randomUUID(),cpm,...changes});
-// Accurate slow practice opens a letter without any per-letter or total speed gate.
-for(const cpm of [1,50,174.999,175,249.999,250]){const p=createProgress();assert.equal(savePractice(p,withSpeed(cpm),'ru',goal),LANGUAGES.ru.alphabet[5]);assert.equal(p.unlocked,6);}
-const {practiceUnlockStatus}=await import('../dist/core.mjs');
-const blocked=createProgress();assert.equal(practiceUnlockStatus(blocked,'ru',goal).pending.length,5);
-const slowKeys=structuredClone(correct.keys);for(const k of Object.values(slowKeys)){k.avgMs=5000;k.latencies=[5000,5000];}
-assert.equal(savePractice(createProgress(),withSpeed(10,{keys:slowKeys}),'ru',goal),LANGUAGES.ru.alphabet[5],'Long genuine intervals are not a hidden speed gate');
-savePractice(blocked,withSpeed(1),'ru',goal);assert.equal(practiceUnlockStatus(blocked,'ru',goal).pending.length,1,'Only newly unlocked unmeasured letter is pending');
-blocked.letters.о.lastAccuracy=50;assert.equal(practiceUnlockStatus(blocked,'ru',goal).pending.some(item=>item.letter==='о'),false,'Local accuracy does not block progression');
-// Very fast transitions and good final text cannot compensate for poor input accuracy.
-for(const changes of [{accuracy:84.999},{firstAttemptAccuracy:84.999},{incorrectWords:1,correctWords:4},{finalAccuracy:84.999}]){
- const q=createProgress();for(let i=0;i<8;i++)savePractice(q,withSpeed(3000,changes),'ru',goal);
- assert.equal(q.unlocked,5);assert.ok(Object.values(q.letters).every(k=>k.samples===0));
-}
+// Only overall input accuracy and full session CPM unlock the next letter.
+const {practiceUnlockStatus,practiceUnlockAssessment}=await import('../dist/core.mjs');
+for(const [cpm,accuracy,expected] of [[249.999,85,5],[250,84.999,5],[250,85,6],[251,99,6]]){const p=createProgress();savePractice(p,withSpeed(cpm,{accuracy}),'ru',goal);assert.equal(p.unlocked,expected);}
+const keyIndependent=createProgress(),independent=withSpeed(250,{accuracy:85,firstAttemptAccuracy:10,finalAccuracy:90,keys:{о:{correct:1,errors:50,latencies:[],avgMs:null}}});
+assert.equal(savePractice(keyIndependent,independent,'ru',goal),LANGUAGES.ru.alphabet[5],'No hidden per-key or secondary accuracy threshold');
+savePractice(keyIndependent,independent,'ru',goal);assert.equal(keyIndependent.unlocked,6,'Duplicate completion cannot open another letter');
+assert.equal(savePractice(keyIndependent,withSpeed(250,{accuracy:85}),'ru',goal),LANGUAGES.ru.alphabet[6]);
+const empty=createProgress();assert.equal(practiceUnlockStatus(empty,'ru',goal).ready,false);
+assert.equal(practiceUnlockAssessment(withSpeed(250,{wordCount:0}),goal).ready,false);
+assert.equal(practiceUnlockAssessment(withSpeed(250,{duration:0}),goal).ready,false);
+assert.equal(practiceUnlockAssessment(withSpeed(250),NaN).ready,false);
 const atAccuracy=assessPractice(withSpeed(250,{accuracy:85,firstAttemptAccuracy:85}),goal,alphabet);
 assert.equal(atAccuracy.accepted.length,5,'Exactly 85% qualifies when all words are corrected');
 // The 95 -> 85 migration preserves trusted samples, unlocks, and history.
@@ -63,7 +61,7 @@ for(const [field,value] of [['finalAccuracy',lessonTarget.accuracy-.001],['first
 }
 const fastKeys=Object.fromEntries(Object.entries(correct.keys).map(([c,k])=>[c,{...k,avgMs:20,latencies:[20,20]}]));
 const capped=createProgress();for(let i=0;i<5;i++)savePractice(capped,withSpeed(175,{keys:fastKeys}),'ru',goal);
-assert.equal(capped.unlocked,6);assert.ok(Object.values(capped.letters).every(k=>k.lastCPM===175),'Per-letter speed never exceeds the complete exercise');
+assert.equal(capped.unlocked,5);assert.ok(Object.values(capped.letters).every(k=>k.lastCPM===175),'Per-letter speed never exceeds the complete exercise');
 const inaccurateKey=structuredClone(correct.keys);inaccurateKey.о.errors=1000;
 const keyGate=assessPractice(withSpeed(3000,{keys:inaccurateKey}),goal,alphabet);assert.ok(keyGate.accepted.includes('о'),'Only overall task accuracy gates progression');
 const few=structuredClone(correct.keys);few.о.correct=1;
