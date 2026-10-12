@@ -38,7 +38,7 @@ const blocked=createProgress();assert.equal(practiceUnlockStatus(blocked,'ru',go
 const slowKeys=structuredClone(correct.keys);for(const k of Object.values(slowKeys)){k.avgMs=5000;k.latencies=[5000,5000];}
 assert.equal(savePractice(createProgress(),withSpeed(10,{keys:slowKeys}),'ru',goal),LANGUAGES.ru.alphabet[5],'Long genuine intervals are not a hidden speed gate');
 savePractice(blocked,withSpeed(1),'ru',goal);assert.equal(practiceUnlockStatus(blocked,'ru',goal).pending.length,1,'Only newly unlocked unmeasured letter is pending');
-blocked.letters.о.lastAccuracy=50;assert.equal(practiceUnlockStatus(blocked,'ru',goal).pending.find(item=>item.letter==='о').reason,'accuracy');
+blocked.letters.о.lastAccuracy=50;assert.equal(practiceUnlockStatus(blocked,'ru',goal).pending.some(item=>item.letter==='о'),false,'Local accuracy does not block progression');
 // Very fast transitions and good final text cannot compensate for poor input accuracy.
 for(const changes of [{accuracy:84.999},{firstAttemptAccuracy:84.999},{incorrectWords:1,correctWords:4},{finalAccuracy:84.999}]){
  const q=createProgress();for(let i=0;i<8;i++)savePractice(q,withSpeed(3000,changes),'ru',goal);
@@ -65,7 +65,7 @@ const fastKeys=Object.fromEntries(Object.entries(correct.keys).map(([c,k])=>[c,{
 const capped=createProgress();for(let i=0;i<5;i++)savePractice(capped,withSpeed(175,{keys:fastKeys}),'ru',goal);
 assert.equal(capped.unlocked,6);assert.ok(Object.values(capped.letters).every(k=>k.lastCPM===175),'Per-letter speed never exceeds the complete exercise');
 const inaccurateKey=structuredClone(correct.keys);inaccurateKey.о.errors=1000;
-const keyGate=assessPractice(withSpeed(3000,{keys:inaccurateKey}),goal,alphabet);assert.ok(!keyGate.accepted.includes('о'),'Local accuracy gate is independent of speed');
+const keyGate=assessPractice(withSpeed(3000,{keys:inaccurateKey}),goal,alphabet);assert.ok(keyGate.accepted.includes('о'),'Only overall task accuracy gates progression');
 const few=structuredClone(correct.keys);few.о.correct=1;
 assert.ok(!assessPractice(withSpeed(250,{keys:few}),goal,alphabet).accepted.includes('о'),'A single isolated observation is not a sample');
 // Replaying a completed session cannot manufacture extra samples.
@@ -80,7 +80,7 @@ const legacy={...createProgress(),samplePolicy:undefined,unlocked:7,letters:{о:
 ensurePracticeProgress(legacy,'ru',goal);assert.equal(legacy.unlocked,7);assert.equal(legacy.history.length,2);assert.equal(legacy.letters.о.samples,1);
 ensurePracticeProgress(legacy,'ru',goal);assert.equal(legacy.letters.о.samples,1);
 const older={version:2,progress:{ru:{...legacy,samplePolicy:undefined}}};
-const loaded=ensureLearning(loadData({getItem:key=>key===STORAGE_KEY?JSON.stringify(older):null}));assert.equal(loaded.progress.ru.samplePolicy,4);assert.equal(loaded.progress.ru.letters.о.samples,1);
+const loaded=ensureLearning(loadData({getItem:key=>key===STORAGE_KEY?JSON.stringify(older):null}));assert.equal(loaded.progress.ru.samplePolicy,5);assert.equal(loaded.progress.ru.letters.о.samples,1);
 assert.doesNotThrow(()=>parseBackup(backupData(loaded)));
 for(const edit of [k=>k.samples=.5,k=>k.lastCPM=-1,k=>k.lastAccuracy=101,k=>k.lastQualified='yes']){const bad=structuredClone(loaded);edit(bad.progress.ru.letters.о);assert.throws(()=>parseBackup(backupData(bad)));}
 // Durable writes, retry, and backup preserve the new assessment and immutable session goal.

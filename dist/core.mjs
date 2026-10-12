@@ -1,7 +1,7 @@
 import {LANGUAGES,DEFAULT_SETTINGS,LESSON_GROUPS,mapPhysicalKeys} from './data.mjs';
 import {EXTRA_WORDS} from './vocabulary.mjs';
 import {PRACTICE_PHRASES} from './practice-phrases.mjs';
-export const PRACTICE_POLICY=4, SAMPLE_SPEED_RATIO=.7, SAMPLE_ACCURACY=85, REQUIRED_SAMPLES=3;
+export const PRACTICE_POLICY=5, SAMPLE_SPEED_RATIO=.7, SAMPLE_ACCURACY=85, REQUIRED_SAMPLES=3;
 export function lessonThreshold(ctx){
  const group=ctx.group||0,step=ctx.step||0;
  if(group===0)return {cpm:[60,75,90,110,130][step]||130,accuracy:[75,78,80,82,85][step]||85,attempts:1};
@@ -11,7 +11,7 @@ export function lessonThreshold(ctx){
 }
 export function createProgress(){return {unlocked:5,letters:{},history:[],lessons:{},lessonHistory:[],tests:[],samplePolicy:PRACTICE_POLICY}}
 export function confidence(key,goal){
- return key?.lastQualified&&key.lastAccuracy>=SAMPLE_ACCURACY?100:0;
+ return key?.lastQualified?100:0;
 }
 // Estimated mastery is anchored to the real session pace, never the inverse
 // of one quick key transition. Delays and errors reduce the estimate.
@@ -46,7 +46,7 @@ export function weakestLetter(progress,lang,goal){
 }
 export function practiceUnlockStatus(progress,lang,goal){
  const alphabet=[...LANGUAGES[lang].alphabet],active=alphabet.slice(0,progress.unlocked);
- const pending=active.filter(c=>confidence(progress.letters[c],goal)<100).map(letter=>{const key=progress.letters[letter];return {letter,reason:!key||!key.correct?'measurement':key.lastAccuracy<SAMPLE_ACCURACY?'accuracy':'quality'};});
+ const pending=active.filter(c=>confidence(progress.letters[c],goal)<100).map(letter=>{const key=progress.letters[letter];return {letter,reason:!key||!key.correct?'measurement':'quality'};});
  return {next:alphabet[progress.unlocked]||null,pending,ready:pending.length===0};
 }
 export function targetLetter(progress,lang,goal){let active=[...LANGUAGES[lang].alphabet].slice(0,progress.unlocked);return active.find(c=>!progress.letters[c])||active.reduce((a,c)=>confidence(progress.letters[c],goal)<confidence(progress.letters[a],goal)?c:a,active[0])}
@@ -63,7 +63,7 @@ export function assessPractice(result,goal,letters){
   const measured=correct>=2&&Number.isFinite(data.avgMs)&&data.avgMs>0&&Array.isArray(data.latencies)&&data.latencies.some(ms=>Number.isFinite(ms)&&ms>0);
   // A short, fast burst cannot hide slow typing, corrections, or skipped words.
   const cpm=measured&&Number.isFinite(result.cpm)&&result.cpm>=0?Math.min(60000/data.avgMs,result.cpm):0;
-  const qualified=!reasons.length&&measured&&accuracy>=SAMPLE_ACCURACY;
+  const qualified=!reasons.length&&measured;
   keys[letter]={cpm,accuracy:Math.min(accuracy,result.accuracy||0,result.firstAttemptAccuracy||0),measured,qualified,correct,errors};
   if(qualified)accepted.push(letter);
  }
@@ -80,7 +80,7 @@ function recordPracticeKeys(progress,assessment){
 export function ensurePracticeProgress(progress,lang,goal){
  if(progress.samplePolicy===PRACTICE_POLICY)return progress;
  // Reassess old samples; keep the user's history and already available letters.
- const trusted=[2,3].includes(progress.samplePolicy)?progress.letters:null,newly={};
+ const trusted=[2,3,4].includes(progress.samplePolicy)?progress.letters:null,newly={};
  progress.letters={};const seen=new Set(),letters=[...LANGUAGES[lang].alphabet].slice(0,progress.unlocked);
  for(const result of progress.history){
   if(result.sessionId&&seen.has(result.sessionId))continue;if(result.sessionId)seen.add(result.sessionId);
@@ -148,7 +148,7 @@ const lastPracticePhrase=new Map();
 // Real connecting phrases become available with their letters. At the start
 // nouns may be invented; later the vocabulary supplies mostly genuine words.
 const PRACTICE_FRAMES={
- ru:[['она','на'],['они','не'],['он','на'],['она','не'],['мы','нашли'],['это','новый'],['там','стоит'],['они','видят'],['ты','читаешь'],['мы','пишем']],
+ ru:[['анна','не'],['неон','на'],['ион','не'],['анион','на'],['она','на'],['они','не'],['он','на'],['она','не'],['мы','нашли'],['это','новый'],['там','стоит'],['они','видят'],['ты','читаешь'],['мы','пишем']],
  en:[['at','the'],['the','tea'],['eat','the'],['the','heat'],['we','have'],['they','read'],['this','is'],['we','write']],
  fr:[['il','est'],['elle','est'],['nous','avons'],['avec','les']]
 };
@@ -178,9 +178,9 @@ export function practiceMaterial(lang,letters,focus,random=Math.random,{everyWor
  const add=word=>{words.push(word);used.add(word);starts.set(word[0],(starts.get(word[0])||0)+1);for(const c of word)observed.set(c,(observed.get(c)||0)+1);};
  // Each fragment has two real words and two practice words. Slot lengths
  // deliberately span 2..8, instead of a fixed number of CV syllables.
- const lengths=[4,5,6,3,7,4,8,5],frameOffset=randomIndex(frames.length||1,random);let slot=0;
+ const lengths=[4,5,6,3,7,4,8,5];let frameOffset=randomIndex(frames.length||1,random),slot=0;
  for(let part=0;part<4;part++){
-  if(frames.length){const frame=frames[(frameOffset+part)%frames.length];frame.forEach(add);}
+  if(frames.length){let frame=frames[(frameOffset+part)%frames.length];if(part===0){const previous=lastFocusedOpening.get('mixed:'+lang+':'+letters),varied=frames.filter(f=>!['он','она','они'].includes(f[0])&&f[0]!==previous);if(varied.length)frame=varied[randomIndex(varied.length,random)];frameOffset=frames.indexOf(frame);lastFocusedOpening.set('mixed:'+lang+':'+letters,frame[0]);}frame.forEach(add);}
   for(let n=0;n<(frames.length?2:4);n++){
    const length=lengths[slot%lengths.length],double=slot===0||slot===5;
    let choices=pool.filter(w=>!used.has(w)&&(!focus||w.includes(focus))&&w.length===length&&(!double||/(.)\1/u.test(w)));
